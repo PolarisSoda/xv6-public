@@ -88,6 +88,7 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->nice = 20; //NATURAL VALUE
 
   release(&ptable.lock);
 
@@ -531,4 +532,55 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+//get nice value of certain process.
+int getnice(int pid) {
+  int ret = -1;
+  struct proc *p;
+
+  acquire(&ptable.lock);
+  for(p=ptable.proc; p<&ptable.proc[NPROC]; p++) {
+    if(p->pid == pid) {
+      ret = p->nice;
+      release(&ptable.lock);
+      return ret;
+    }
+  }
+  release(&ptable.lock);
+  return ret;
+}
+
+int setnice(int pid,int n_val) {
+  struct proc *p;
+
+  acquire(&ptable.lock);
+  for(p=ptable.proc; p<&ptable.proc[NPROC]; p++) {
+    if(p->pid == pid) {
+      p->nice = n_val;
+      release(&ptable.lock);
+      return 0;
+    }
+  }
+  release(&ptable.lock);
+  return -1;
+}
+
+void ps(int pid) {
+  struct proc *p;
+
+  acquire(&ptable.lock);
+  if(pid == 0) {
+    for(p=ptable.proc; p<&ptable.proc[NPROC]; p++) {
+      cprintf("%s %d %d %d\n",p->name,p->pid,p->state,p->nice);
+    }
+  } else {
+    for(p=ptable.proc; p<&ptable.proc[NPROC]; p++) {
+      if(p->pid == pid) {
+        cprintf("%s %d %d %d\n",p->name,p->pid,p->state,p->nice);
+        break;
+      }
+    }
+  }
+  release(&ptable.lock);
 }
