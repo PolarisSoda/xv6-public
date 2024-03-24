@@ -543,6 +543,7 @@ int getnice(int pid) {
   for(p=ptable.proc; p<&ptable.proc[NPROC]; p++) {
     if(p->pid == pid) {
       ret = p->nice;
+      cprintf("%d ",ret);
       release(&ptable.lock);
       return ret;
     }
