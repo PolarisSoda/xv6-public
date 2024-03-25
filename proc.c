@@ -543,7 +543,6 @@ int getnice(int pid) {
   for(p=ptable.proc; p<&ptable.proc[NPROC]; p++) {
     if(p->pid == pid) {
       ret = p->nice;
-      cprintf("%d ",ret);
       release(&ptable.lock);
       return ret;
     }
@@ -552,7 +551,10 @@ int getnice(int pid) {
   return ret;
 }
 
+//set nice value of certain process
 int setnice(int pid,int n_val) {
+  if(n_val < 0 || n_val >= 40) return -1; //Invalid nice value
+
   struct proc *p;
 
   acquire(&ptable.lock);
