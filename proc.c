@@ -572,12 +572,13 @@ int setnice(int pid,int n_val) {
 void ps(int pid) {
   struct proc *p;
   int first = 0;
+  char *str[] = {"UNUSED","EMBRYO","SLEEPING","RUNNABLE","RUNNING","ZOMBIE"};
 
   acquire(&ptable.lock);
   for(p=ptable.proc; p<&ptable.proc[NPROC]; p++) {
     if((pid == 0 || p->pid == pid) && p->state != 0) {
       if(first == 0) cprintf("name\t pid\t state\t priority\n"), first = 1;
-      cprintf("%s\t %d\t %d\t %d\n",p->name,p->pid,p->state,p->nice);
+      cprintf("%s\t %d\t %d\t %d\n",p->name,p->pid,str[p->state],p->nice);
     }
   }
   release(&ptable.lock);
