@@ -576,9 +576,10 @@ void ps(int pid) {
 
   acquire(&ptable.lock);
   for(p=ptable.proc; p<&ptable.proc[NPROC]; p++) {
-    if((pid == 0 || p->pid == pid) && p->state != 0) {
-      if(first == 0) cprintf("name\t\t pid\t state\t\t priority\n"), first = 1;
-      cprintf("%s\t\t %d\t %s\t\t %d\n",p->name,p->pid,str[p->state],p->nice);
+    if((pid == 0 || p->pid == pid) && p->state > 1) {
+      //Except UNUSED and EMBRYO
+      if(first == 0) cprintf("name\t\t pid\t state\t     priority\n"), first = 1;
+      cprintf("%s\t\t %d\t %s\t     %d\n",p->name,p->pid,str[p->state],p->nice);
     }
   }
   release(&ptable.lock);
