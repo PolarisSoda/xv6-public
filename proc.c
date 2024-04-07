@@ -350,7 +350,7 @@ void scheduler(void) {
       c->proc = 0;
     }
     release(&ptable.lock);
-    cprintf("%d",ticks);
+    cprintf("%d\n",ticks);
   }
 }
 
