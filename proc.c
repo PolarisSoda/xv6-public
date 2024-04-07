@@ -325,6 +325,7 @@ void scheduler(void) {
   struct cpu *c = mycpu();
   c->proc = 0;
   
+  //WE CAN CHECK TICKS BY USING TICKS(TICKS ARE DEFINED AT TRAP.C)
   for(;;){
     // Enable interrupts on this processor.
     sti();
@@ -350,7 +351,7 @@ void scheduler(void) {
       c->proc = 0;
     }
     release(&ptable.lock);
-    cprintf("%d\n",ticks);
+    cprintf("%d\n",c->apicid);
   }
 }
 
