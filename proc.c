@@ -351,7 +351,6 @@ void scheduler(void) {
       c->proc = 0;
     }
     release(&ptable.lock);
-    cprintf("%d\n",c->apicid);
   }
 }
 
