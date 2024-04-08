@@ -36,7 +36,6 @@ idtinit(void)
 void
 trap(struct trapframe *tf)
 {
-  cprintf("trapped : %s %d\n",myproc()->name,ticks);
   if(tf->trapno == T_SYSCALL){
     if(myproc()->killed)
       exit();
@@ -47,7 +46,7 @@ trap(struct trapframe *tf)
     return;
   }
 
-  switch(tf->trapno){
+  switch(tf->trapno) {
   case T_IRQ0 + IRQ_TIMER:
     if(cpuid() == 0){
       acquire(&tickslock);
@@ -95,6 +94,10 @@ trap(struct trapframe *tf)
     myproc()->killed = 1;
   }
 
+  //this is for the code that i donn know....
+
+
+
   // Force process exit if it has been killed and is in user space.
   // (If it is still executing in the kernel, let it keep running
   // until it gets to the regular system call return.)
@@ -103,9 +106,10 @@ trap(struct trapframe *tf)
 
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
-  if(myproc() && myproc()->state == RUNNING &&
-     tf->trapno == T_IRQ0+IRQ_TIMER)
+  if(myproc() && myproc()->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER) {
+    cprintf("yielded\n");
     yield();
+  }
 
   // Check if the process has been killed since we yielded
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
