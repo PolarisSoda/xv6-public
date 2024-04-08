@@ -99,6 +99,8 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
   p->nice = 20; //NATURAL VALUE
+  p->v_runtime = 0; //initializing runtime values
+  p->r_runtime = 0;
 
   release(&ptable.lock);
 
@@ -334,7 +336,7 @@ void scheduler(void) {
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-  
+  cprintf("SCHED\n");
   //WE CAN CHECK TICKS BY USING TICKS(TICKS ARE DEFINED AT TRAP.C)
   for(;;){
     // Enable interrupts on this processor.
