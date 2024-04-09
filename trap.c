@@ -33,9 +33,7 @@ idtinit(void)
 }
 
 //PAGEBREAK: 41
-void
-trap(struct trapframe *tf)
-{
+void trap(struct trapframe *tf) {
   if(tf->trapno == T_SYSCALL){
     if(myproc()->killed)
       exit();
@@ -94,10 +92,6 @@ trap(struct trapframe *tf)
     myproc()->killed = 1;
   }
 
-  //this is for the code that i donn know....
-
-
-
   // Force process exit if it has been killed and is in user space.
   // (If it is still executing in the kernel, let it keep running
   // until it gets to the regular system call return.)
@@ -107,9 +101,14 @@ trap(struct trapframe *tf)
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
   if(myproc() && myproc()->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER) {
-    cprintf("%d",weight[23]);
-    cprintf("yielded at %d\n",ticks);
-    yield();
+    struct proc *p = myproc(); //now process, we chec
+
+    p->t_runtime += 1000; //total runtime
+    p->r_runtime += 1000; //now-real runtime
+    p->v_runtime += (1000<<10)/weight[p->nice]; //virtual runtime 
+
+    int time_slice = 0; //we have to calculate it. i have to decide to calculate here or other.
+    if(p->v_runtime > time_slice) yield();
   }
 
   // Check if the process has been killed since we yielded
