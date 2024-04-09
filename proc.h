@@ -12,8 +12,8 @@ struct cpu {
 
 extern struct cpu cpus[NCPU];
 extern int ncpu;
-extern int weight[40];
-//i think it will use else-where[PROJ2]
+extern int weight[40]; //hard-coded weights;
+extern int t_weight; //total weights of ...... runnable processes.
 
 //PAGEBREAK: 17
 // Saved registers for kernel context switches.
@@ -54,7 +54,8 @@ struct proc {
   int nice; // ADDED NICE VALUE[PROJ1]
 
   int v_runtime; //Select process with minimum virtual runtime from runnable processes[PROJ2]
-  int r_runtime; //i think this will be inserted into proc.[PROJ2]
+  int r_runtime; //real runtime that this time interval.[PROJ2]
+  int t_runtime; //total runtime[PROJ2]
   //we can obtain weight by nice value, so i think it's enough to 
 };
 
