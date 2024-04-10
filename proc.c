@@ -609,7 +609,7 @@ void ps(int pid) {
         first = 1;
       }
       cprintf("%s\t %d\t %s\t %d\t\t",p->name,p->pid,str[p->state],p->nice);
-      cprintf("%d\t\t %d\t %d\n",p->t_runtime/weight[p->nice],p->t_runtime,p->v_runtime);
+      cprintf("%d\t\t %d\t\t %d\n",p->t_runtime/weight[p->nice],p->t_runtime,p->v_runtime);
     }
   }
   release(&ptable.lock);
