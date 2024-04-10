@@ -9,14 +9,14 @@ int main() {
     setnice(pid,1);
     ps(0);
     child = fork();
-    if(child == 0){
-        setnice(pid,3);
-        for(int i=1; i<=100000; i++) for(int j=1; j<=100000; j++) a += i+j;
+    if(child == 0) {
+        for(int i=1; i<=100000; i++) for(int j=1; j<=100000; j++) asm(""), a += i+j;
         printf(1,"childsjlfkjs\n");
         ps(0);
         exit(); 
     } else {
-        for(int i=1; i<=100000; i++) for(int j=1; j<=100000; j++) a += i+j;
+        setnice(pid,20);
+        for(int i=1; i<=100000; i++) for(int j=1; j<=100000; j++) asm(""), a += i+j;
         printf(1,"pt\n");
         ps(0);
         wait();
