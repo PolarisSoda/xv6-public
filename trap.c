@@ -101,14 +101,12 @@ void trap(struct trapframe *tf) {
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
   if(myproc() && myproc()->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER) {
-    struct proc *p = myproc(); //now process, we chec
+    struct proc *p = myproc(); //now process
 
     p->t_runtime += 1000; //total runtime
     p->r_runtime += 1000; //now-real runtime
-    p->v_runtime += (1000<<10)/weight[p->nice]; //virtual runtime 
-
-    int time_slice = 0; //we have to calculate it. i have to decide to calculate here or other.
-    if(p->v_runtime > time_slice) yield();
+    p->v_runtime += 1000<<10/weight[p->nice]; //virtual runtime 
+    if(p->r_runtime > p->time_slice) yield();
   }
 
   // Check if the process has been killed since we yielded
