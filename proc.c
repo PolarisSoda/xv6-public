@@ -366,7 +366,7 @@ void scheduler(void) {
       t_weight += weight[p->nice];
       if(min_vrt < p->v_runtime) min_vrt = p->v_runtime, minp = p;
     }
-    relase(&ptable.lock);
+    release(&ptable.lock);
     if(minp) {
       minp->time_slice = 10000*weight[minp->nice]/t_weight;
       minp->r_runtime = 0; //init runtime and time_slices.
