@@ -604,8 +604,8 @@ void ps(int pid) {
     if((pid == 0 || p->pid == pid) && p->state > 1) {
       //Except UNUSED and EMBRYO
       if(first == 0) {
-        cprintf("name\t pid\t state\t priority\t");
-        cprintf("runtime/weight\t runtime\tv_runtime\t tick %d\n",ticks*1000);
+        cprintf("name\t pid\t state\t\t priority\t");
+        cprintf("runtime/weight\t runtime\t v_runtime\t tick %d\n",ticks*1000);
         first = 1;
       }
       cprintf("%s\t %d\t %s\t %d\t\t",p->name,p->pid,str[p->state],p->nice);
