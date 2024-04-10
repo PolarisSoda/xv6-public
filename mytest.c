@@ -10,13 +10,13 @@ int main() {
     ps(0);
     child = fork();
     if(child == 0) {
-        for(int i=1; i<=100000; i++) for(int j=1; j<=100000; j++) asm(""), a += i+j;
+        for(int i=1; i<=100000; i++) for(int j=1; j<=100000; j++) {asm(""); a += i+j;}
         printf(1,"childsjlfkjs\n");
         ps(0);
         exit(); 
     } else {
         setnice(pid,20);
-        for(int i=1; i<=100000; i++) for(int j=1; j<=100000; j++) asm(""), a += i+j;
+        for(int i=1; i<=100000; i++) for(int j=1; j<=100000; j++) {asm(""); a += i+j;}
         printf(1,"pt\n");
         ps(0);
         wait();
