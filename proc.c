@@ -368,6 +368,7 @@ void scheduler(void) {
     }
     //release(&ptable.lock);
     if(minp) {
+      cprintf("scheduling\n");
       minp->time_slice = 10000*weight[minp->nice]/t_weight;
       minp->r_runtime = 0; //init runtime and time_slices.
       c->proc = minp;
