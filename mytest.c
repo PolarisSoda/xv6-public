@@ -7,8 +7,13 @@ int main() {
     
     int pid = fork();
     if(pid != 0) setnice(pid,0); 
-    for(int i=1; i<=100000000; i++) for(int j=1; j<=100000000; j++) a++;
-    printf(1,"%d : \n",a);
+    for(int i=1; i<=0x7FFFFFFF; i++) {
+        for(int j=1; j<=0x7FFFFFFF; j++) {
+            if(a == 1) a--;
+            else a++;
+        }
+    }
     ps(0);
+    if(pid != 0) wait();
     exit();
 }
