@@ -205,7 +205,7 @@ int fork(void) {
   }
 
   // Copy process state from proc.
-  // 해야 할 일 : runtime ,vruntime nice vlaue 상속
+  // TODO: t_runtime,v_runtime,nice inherit
   if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
     kfree(np->kstack);
     np->kstack = 0;
@@ -486,7 +486,7 @@ static void wakeup1(void *chan) {
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
     if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
-      if(run_exist) p->v_runtime = min_vrt - 1000*1024/weight[p->nice]; 
+      if(run_exist) p->v_runtime = min_vrt - (1000<<10)/weight[p->nice]; 
       else p->v_runtime = 0;
     }
   }
@@ -597,7 +597,7 @@ int setnice(int pid,int n_val) {
 void ps(int pid) {
   struct proc *p;
   int first = 0;
-  const char *str[] = {"UNUSED","EMBRYO","SLEEPING","RUNNABLE","RUNNING","ZOMBIE"};
+  const char *str[] = {"UNUSED","EMBRYO","SLEEPING","RUNNABLE","RUNNING","ZOMBIE "};
 
   acquire(&ptable.lock);
   for(p=ptable.proc; p<&ptable.proc[NPROC]; p++) {
