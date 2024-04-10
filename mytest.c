@@ -1,16 +1,27 @@
 #include "types.h"
-#include "user.h"
 #include "stat.h"
+#include "user.h"
 
 int main() {
-    int a = 1;
-    
-    int pid = fork();
-    if(pid != 0) setnice(pid,0);
-    sleep(1);
+    int pid = getpid();
+    int child, a = 1;
     ps(0);
-    sleep(10);
+    setnice(pid,1);
     ps(0);
-    if(pid != 0) wait();
+    child = fork();
+    if(child == 0){
+        setnice(pid,3);
+        for(int i=1; i<=100000; i++) for(int j=1; j<=100000; j++) a += i+j;
+        printf(1,"childsjlfkjs\n");
+        ps(0);
+        exit(); 
+    } else {
+        for(int i=1; i<=100000; i++) for(int j=1; j<=100000; j++) a += i+j;
+        printf(1,"pt\n");
+        ps(0);
+        wait();
+    }
+    printf(1,"WRWERWERWERWERWERWERWERW\n");
+    ps(0);
     exit();
 }
