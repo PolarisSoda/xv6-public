@@ -4,7 +4,11 @@
 
 int main() {
     int a = 1;
-    for(int i=1; i<=1000000; i++) for(int j=1; j<=10000; j++) a++; 
+    
+    int pid = fork();
+    if(pid != 0) setnice(pid,0); 
+    for(int i=1; i<=100000000; i++) for(int j=1; j<=100000000; j++) a++;
+    cprintf("%d : \n",a);
     ps(0);
     exit();
 }
