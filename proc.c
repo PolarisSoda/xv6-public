@@ -364,7 +364,7 @@ void scheduler(void) {
     for(p = ptable.proc; p<&ptable.proc[NPROC]; p++) {
       if(p->state != RUNNABLE) continue;
       t_weight += weight[p->nice];
-      if(min_vrt < p->v_runtime) min_vrt = p->v_runtime, minp = p;
+      if(min_vrt > p->v_runtime) min_vrt = p->v_runtime, minp = p;
     }
     release(&ptable.lock);
     if(minp) {
