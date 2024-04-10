@@ -24,7 +24,8 @@ int weight[40] = {
   335  , 272  , 215  , 172  , 137  ,
   110  , 87   , 70   , 56   , 45   ,
   36   , 29   , 23   , 18   , 15   ,
-};
+}; //weight actually define[PROJ2]
+
 extern void forkret(void);
 extern void trapret(void);
 
@@ -80,9 +81,9 @@ myproc(void) {
 // If found, change state to EMBRYO and initialize
 // state required to run in the kernel.
 // Otherwise return 0.
-static struct proc*
-allocproc(void)
-{
+//allocproc was modified to init nice value[PROJ1]
+//allocproc was modified to init runtimes and time_slice[PROJ2]
+static struct proc* allocproc(void) {
   struct proc *p;
   char *sp;
 
@@ -98,9 +99,11 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
-  p->nice = 20; //NATURAL VALUE
-  p->v_runtime = 0; //initializing runtime values
+  p->nice = 20; //priority values[PROJ1]
+  p->v_runtime = 0; //initializing runtime values[PROJ2]
   p->r_runtime = 0;
+  p->t_runtime = 0;
+  p->time_slice = 0;
 
   release(&ptable.lock);
 
@@ -190,9 +193,8 @@ growproc(int n)
 // Create a new process copying p as the parent.
 // Sets up stack to return as if from system call.
 // Caller must set state of returned proc to RUNNABLE.
-int
-fork(void)
-{
+// fork was modified to inherit the runtime and values[PROJ2]
+int fork(void) {
   int i, pid;
   struct proc *np;
   struct proc *curproc = myproc();
@@ -203,12 +205,18 @@ fork(void)
   }
 
   // Copy process state from proc.
+  // 해야 할 일 : runtime ,vruntime nice vlaue 상속
   if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
     kfree(np->kstack);
     np->kstack = 0;
     np->state = UNUSED;
     return -1;
   }
+  np->nice = curproc->nice;
+  np->v_runtime = curproc->v_runtime;
+  np->t_runtime = curproc->t_runtime; ///?????
+  np->r_runtime = curproc->r_runtime; ///????? which one should be inherited? 
+
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
@@ -332,37 +340,44 @@ wait(void)
 //  - swtch to start running that process
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
+/*
+ * there are some changes in this section.
+ * first we check minimum vrt process.
+ * we iterate all over processes and find it.
+ * if exists, we give time_slices and r_runtime = 0 to process that will be conducted.
+ * processes exists means there's total weights that are nonzero.
+ * switching is same as original.[PROJ2]
+*/
 void scheduler(void) {
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-  cprintf("SCHED\n");
-  //WE CAN CHECK TICKS BY USING TICKS(TICKS ARE DEFINED AT TRAP.C)
+  
   for(;;){
     // Enable interrupts on this processor.
     sti();
 
-    // Loop over process table looking for process to run.
+    struct proc *minp = 0;
+    int min_vrt = 0x7FFFFFFF, t_weight = 0;
+    
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
+    for(p = ptable.proc; p<&ptable.proc[NPROC]; p++) {
+      if(p->state != RUNNABLE) continue;
+      t_weight += weight[p->nice];
+      if(min_vrt < p->v_runtime) min_vrt = p->v_runtime, minp = p;
+    }
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-
-      swtch(&(c->scheduler), p->context);
+    if(minp) {
+      minp->time_slice = 10000*weight[minp->nice]/t_weight;
+      minp->r_runtime = 0; //init runtime and time_slices.
+      c->proc = minp;
+      switchuvm(minp);
+      minp->state = RUNNING;
+      swtch(&(c->scheduler), minp->context);
       switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
       c->proc = 0;
     }
-    release(&ptable.lock);
+    release(&ptable.lock); //i think it's safer to locate here.
   }
 }
 
@@ -463,14 +478,24 @@ sleep(void *chan, struct spinlock *lk)
 //PAGEBREAK!
 // Wake up all processes sleeping on chan.
 // The ptable lock must be held.
-static void
-wakeup1(void *chan)
-{
+// How about woken process?
+// we have to change some v_runtime.
+// if there's no process in RUNNABLE. v_runtime is 0 else calculate with formula.[PROJ2]
+static void wakeup1(void *chan) {
   struct proc *p;
-
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == SLEEPING && p->chan == chan)
+  int min_vrt = 0x7FFFFFFF;
+  int run_exist = 0;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if(p->state != RUNNABLE) continue;
+    if(min_vrt > p->v_runtime) min_vrt = p->v_runtime, run_exist = 1;
+  }
+  
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
+      p->v_runtime = run_exist ? min_vrt - (1000<<10)/weight[p->nice] : 0;
+    }
+  }
 }
 
 // Wake up all processes sleeping on chan.
@@ -586,8 +611,8 @@ void ps(int pid) {
   for(p=ptable.proc; p<&ptable.proc[NPROC]; p++) {
     if((pid == 0 || p->pid == pid) && p->state > 1) {
       //Except UNUSED and EMBRYO
-      if(first == 0) cprintf("name\t\t pid\t state\t\t priority\n"), first = 1;
-      cprintf("%s\t\t %d\t %s\t %d\n",p->name,p->pid,str[p->state],p->nice);
+      if(first == 0) cprintf("name\t\t pid\t state\t\t priority\t runtime/weight\t runtime\t v_runtime\t tick %u\n",ticks*1000), first = 1;
+      cprintf("%s\t\t %d\t %s\t %d\t %d\t %d\t %d\t %d\n",p->name,p->pid,str[p->state],p->nice,p->t_runtime/weight[p->nice],p->t_runtime,p->v_runtime);
     }
   }
   release(&ptable.lock);
