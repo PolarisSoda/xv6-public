@@ -494,7 +494,7 @@ static void wakeup1(void *chan) {
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
     if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
-      p->v_runtime = run_exist ? min_vrt - (1000<<10)/weight[p->nice] : 0;
+      p->v_runtime = run_exist ? min_vrt - 1000*1024/weight[p->nice] : 0;
     }
   }
 }

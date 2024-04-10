@@ -7,7 +7,7 @@ int main() {
     
     int pid = fork();
     if(pid != 0) setnice(pid,0); 
-    for(int i=1; i<=0x7FFFFFF; i++) {
+    for(int i=1; i<=0x5FFFFFFF; i++) {
         for(int j=1; j<=0x7FFFFFF; j++) {
             if(a == 1) a--;
             else a++;
