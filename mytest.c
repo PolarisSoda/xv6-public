@@ -5,7 +5,7 @@
 //1억번 = 1초였던가.
 //약 15초동안 cpu를 혹사시킵니다.
 void starvation() {
-    for(int i=0; i<1'500'000'000; i++) asm("");
+    for(int i=0; i<1500000000; i++) asm("");
 }
 
 int main() {
