@@ -612,7 +612,7 @@ void ps(int pid) {
     if((pid == 0 || p->pid == pid) && p->state > 1) {
       //Except UNUSED and EMBRYO
       if(first == 0) cprintf("name\t\t pid\t state\t\t priority\t runtime/weight\t runtime\t v_runtime\t tick %d\n",ticks*1000), first = 1;
-      cprintf("%s\t\t %d\t %s\t %d\t\t %d\t %d\t %d\t\n",p->name,p->pid,str[p->state],p->nice,p->t_runtime/weight[p->nice],p->t_runtime,p->v_runtime);
+      cprintf("%s\t\t %d\t %s\t %d\t\t %d\t\t %d\t\t %d\n",p->name,p->pid,str[p->state],p->nice,p->t_runtime/weight[p->nice],p->t_runtime,p->v_runtime);
     }
   }
   release(&ptable.lock);
