@@ -214,8 +214,8 @@ int fork(void) {
   }
   np->nice = curproc->nice;
   np->v_runtime = curproc->v_runtime;
-  np->t_runtime = curproc->t_runtime; ///?????
-  np->r_runtime = curproc->r_runtime; ///????? which one should be inherited? 
+  np->t_runtime = curproc->t_runtime;
+  np->r_runtime = 0; 
 
   np->sz = curproc->sz;
   np->parent = curproc;
@@ -340,14 +340,6 @@ wait(void)
 //  - swtch to start running that process
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
-/*
- * there are some changes in this section.
- * first we check minimum vrt process.
- * we iterate all over processes and find it.
- * if exists, we give time_slices and r_runtime = 0 to process that will be conducted.
- * processes exists means there's total weights that are nonzero.
- * switching is same as original.[PROJ2]
-*/
 void scheduler(void) {
   struct proc *p;
   struct cpu *c = mycpu();
@@ -366,11 +358,10 @@ void scheduler(void) {
       t_weight += weight[p->nice];
       if(min_vrt > p->v_runtime) min_vrt = p->v_runtime, minp = p;
     }
-    //release(&ptable.lock);
+
     if(minp) {
-      cprintf("scheduling\n");
       minp->time_slice = 10000*weight[minp->nice]/t_weight;
-      minp->r_runtime = 0; //init runtime and time_slices.
+      minp->r_runtime = 0;
       c->proc = minp;
       switchuvm(minp);
       minp->state = RUNNING;
@@ -411,6 +402,7 @@ sched(void)
 // Give up the CPU for one scheduling round.
 void yield(void) {
   acquire(&ptable.lock);  //DOC: yieldlock
+  myproc()->r_runtime = 0;
   myproc()->state = RUNNABLE;
   sched();
   release(&ptable.lock);
@@ -494,15 +486,14 @@ static void wakeup1(void *chan) {
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
     if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
-      p->v_runtime = run_exist ? min_vrt - 1000*1024/weight[p->nice] : 0;
+      if(run_exist) p->v_runtime = min_vrt - 1000*1024/weight[p->nice]; 
+      else p->v_runtime = 0;
     }
   }
 }
 
 // Wake up all processes sleeping on chan.
-void
-wakeup(void *chan)
-{
+void wakeup(void *chan) {
   acquire(&ptable.lock);
   wakeup1(chan);
   release(&ptable.lock);
@@ -612,8 +603,13 @@ void ps(int pid) {
   for(p=ptable.proc; p<&ptable.proc[NPROC]; p++) {
     if((pid == 0 || p->pid == pid) && p->state > 1) {
       //Except UNUSED and EMBRYO
-      if(first == 0) cprintf("name\t\t pid\t state\t\t priority\t runtime/weight\t runtime\t v_runtime\t tick %d\n",ticks*1000), first = 1;
-      cprintf("%s\t\t %d\t %s\t %d\t\t %d\t\t %d\t\t %d\n",p->name,p->pid,str[p->state],p->nice,p->t_runtime/weight[p->nice],p->t_runtime,p->v_runtime);
+      if(first == 0) {
+        cprintf("name\t pid\t state\t priority\t");
+        cprintf("runtime/weight\t runtime\tv_runtime\t tick %d\n",ticks*1000);
+        first = 1;
+      }
+      cprintf("%s\t %d\t %s\t %d\t\t",p->name,p->pid,str[p->state],p->nice);
+      cprintf("%d\t\t %d\t %d\n",p->t_runtime/weight[p->nice],p->t_runtime,p->v_runtime);
     }
   }
   release(&ptable.lock);

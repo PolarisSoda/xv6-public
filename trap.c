@@ -106,7 +106,6 @@ void trap(struct trapframe *tf) {
     p->t_runtime += 1000; //total runtime
     p->r_runtime += 1000; //now-real runtime
     p->v_runtime += 1000*1024/weight[p->nice]; //virtual runtime
-    cprintf("%s : pid: %d t: %d r: %d v: %d ts: %d\n",p->name,p->pid,p->t_runtime,p->r_runtime,p->v_runtime,p->time_slice); 
     if(p->r_runtime > p->time_slice) yield();
   }
 
