@@ -6,13 +6,10 @@ int main() {
     int a = 1;
     
     int pid = fork();
-    if(pid != 0) setnice(pid,0); 
-    for(int i=1; i<=0x5FFFFFFF; i++) {
-        for(int j=1; j<=0x7FFFFFF; j++) {
-            if(a == 1) a--;
-            else a++;
-        }
-    }
+    if(pid != 0) setnice(pid,0);
+    sleep(1);
+    ps(0);
+    sleep(10);
     ps(0);
     if(pid != 0) wait();
     exit();
