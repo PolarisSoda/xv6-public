@@ -402,7 +402,6 @@ sched(void)
 // Give up the CPU for one scheduling round.
 void yield(void) {
   acquire(&ptable.lock);  //DOC: yieldlock
-  myproc()->r_runtime = 0;
   myproc()->state = RUNNABLE;
   sched();
   release(&ptable.lock);

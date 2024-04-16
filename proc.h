@@ -55,7 +55,7 @@ struct proc {
   int v_runtime; //Select process with minimum virtual runtime from runnable processes[PROJ2]
   int r_runtime; //real runtime that this time interval.[PROJ2]
   int t_runtime; //total runtime[PROJ2]
-  int time_slice; //time_slice at that time.
+  int time_slice; //time_slice at that time[PROJ2]
 };
 
 // Process memory is laid out contiguously, low addresses first:
