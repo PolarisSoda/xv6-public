@@ -358,7 +358,8 @@ void scheduler(void) {
       t_weight += weight[p->nice];
       if(min_vrt > p->v_runtime) min_vrt = p->v_runtime, minp = p;
     }
-
+    release(&ptable.lock);
+    
     if(minp) {
       minp->time_slice = 10000*weight[minp->nice]/t_weight;
       minp->r_runtime = 0;
@@ -369,7 +370,7 @@ void scheduler(void) {
       switchkvm();
       c->proc = 0;
     }
-    release(&ptable.lock); //i think it's safer to locate here.
+    
   }
 }
 
