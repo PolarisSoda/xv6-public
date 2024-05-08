@@ -11,6 +11,7 @@ struct {
   struct spinlock lock;
   struct proc proc[NPROC];
 } ptable;
+struct mmap_area mmap_area_array[64];
 
 static struct proc *initproc;
 
@@ -613,4 +614,16 @@ void ps(int pid) {
     }
   }
   release(&ptable.lock);
+}
+
+uint mmap(uint addr,int length,int port,int flags,int fd,int offset) {
+  return 0;
+}
+
+int mummap(uint addr) {
+  return 0;
+}
+
+int freemap(void) {
+  return 0;
 }

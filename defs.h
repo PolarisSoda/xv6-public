@@ -123,6 +123,10 @@ void            yield(void);
 int             getnice(int);
 int             setnice(int,int);
 void            ps(int);
+uint            mmap(uint, int, int, int, int, int);
+int             page_fault_handler(uint, uint);
+int             munmap(uint);
+int             freemem(void);
 
 // swtch.S
 void            swtch(struct context**, struct context*);

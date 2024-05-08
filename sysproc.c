@@ -108,3 +108,15 @@ int sys_ps(void) {
   ps(pid);
   return 0;
 }
+
+int sys_mmap(void) {
+
+}
+
+int sys_munmap(void) {
+
+}
+
+int sys_freemem(void) {
+  
+}
