@@ -13,6 +13,7 @@ struct {
 } ptable;
 
 static struct proc *initproc;
+struct mmap_area mmap_area_array[64];
 
 int nextpid = 1;
 int weight[40] = {
@@ -619,7 +620,25 @@ uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
 }
 
 int munmap(uint addr) {
-  return 0;
+  struct proc *p = myproc(); //now process
+  struct mmap_area *mmap_cur = 0;
+
+  for(int i=0; i<64; i++) if(mmap_area_array[i].addr == addr) {mmap_cur = &mmap_area_array[i]; goto found;}
+  return -1;
+
+  found:
+  int p_cnt = mmap_cur->length/PGSIZE;
+  for(int i=0; i<p_cnt; i++) {
+    pte_t *PTE;
+    PTE = walkpgdir(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE),0); //This is page table entry.
+    if(PTE != 0 && (*PTE&PTE_P)) {
+      char* VA = P2V(PTE_ADDR(*PTE));
+      memset(VA,1,PGSIZE); //fill with 1
+      kfree(VA); //when freeing the physical page
+      *PTE = 0;  //*PTE ^= PTE_P; ->this will work correctly maybe.
+    }
+  }
+  return 1;
 }
 
 int freemem() {

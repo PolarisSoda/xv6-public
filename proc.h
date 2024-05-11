@@ -58,6 +58,15 @@ struct proc {
   int time_slice; //time_slice at that time[PROJ2]
 };
 
+struct mmap_area {
+  struct file *f; //file descriptor maybe...
+  uint addr; //address of virtual address
+  int length; //length that starts of virtual address
+  int offset; //offset in page
+  int prot; //protection
+  int flags; //flags that what it is.
+  struct proc *p; //address of possessing process
+};
 // Process memory is laid out contiguously, low addresses first:
 //   text
 //   original data and bss
