@@ -703,7 +703,7 @@ uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
   return 0;
 }
 
-int mummap(uint addr) {
+int munmap(uint addr) {
   struct proc *p = myproc(); //now process
   struct mmap_area *mmap_cur = 0;
 
