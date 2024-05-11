@@ -1,6 +1,3 @@
-#include "fs.h"
-#include "sleeplock.h"
-
 struct file {
   enum { FD_NONE, FD_PIPE, FD_INODE } type;
   int ref; // reference count
