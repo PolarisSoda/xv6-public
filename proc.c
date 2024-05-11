@@ -613,3 +613,15 @@ void ps(int pid) {
   }
   release(&ptable.lock);
 }
+
+uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
+  return 0;
+}
+
+int munmap(uint addr) {
+  return 0;
+}
+
+int freemem() {
+  return 0;
+}
