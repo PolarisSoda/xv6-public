@@ -10,7 +10,8 @@
 #include "fs.h"
 #include "file.h"
 
-
+static int
+mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm);
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
