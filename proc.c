@@ -692,7 +692,8 @@ uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
   DIE_IN:
   //t_cnt-1 까지 kfree 및 page 삭제
   for(int i=0; i<t_cnt; i++) {
-    pte_t *PTE = walkpgdir(p->pgdir,mmap_cur->addr+i*PGSIZE,0);
+    pte_t *PTE;
+    PTE = walkpgdir(p->pgdir,mmap_cur->addr+i*PGSIZE,0);
     *PTE = 0;
     memset(tmp_memory[t_cnt],0,PGSIZE);
     kfree(tmp_memory[t_cnt]);
@@ -711,7 +712,8 @@ int mummap(uint addr) {
   found:
   int p_cnt = mmap_cur->length/PGSIZE;
   for(int i=0; i<p_cnt; i++) {
-    pte_t *PTE = walkpgdir(p->pgdir,mmap_cur->addr+i*PGSIZE,0); //page tabe entry가 나온다.
+    pte_t *PTE;
+    PTE = walkpgdir(p->pgdir,mmap_cur->addr+i*PGSIZE,0); //page tabe entry가 나온다.
     if(PTE != 0 && (*PTE&PTE_P)) {
       char* VA = P2V(PTE_ADDR(*PTE));
       memset(VA,1,PGSIZE); //fill with 1
