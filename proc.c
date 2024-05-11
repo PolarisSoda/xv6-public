@@ -10,6 +10,9 @@
 #include "fs.h"
 #include "file.h"
 
+pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc);
+static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm);
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -693,7 +696,7 @@ uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
   //t_cnt-1 까지 kfree 및 page 삭제
   for(int i=0; i<t_cnt; i++) {
     pte_t *PTE;
-    //walkpgdir(pde_t *pgdir, const void *va, int alloc)
+    //
     PTE = walkpgdir(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE),0);
     *PTE = 0;
     memset(tmp_memory[t_cnt],0,PGSIZE);
