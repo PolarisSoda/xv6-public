@@ -720,7 +720,7 @@ int mummap(uint addr) {
   return 1;
 }
 
-int freemem(void) {
+int freemem() {
   //이건 잘 모르겠는데요.
   return 0;
 }

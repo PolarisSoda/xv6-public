@@ -29,7 +29,7 @@ void ps(int);
 uint mmap(uint, int, int, int, int, int);
 int  page_fault_handler(uint, uint);
 int  munmap(uint);
-int  freemem(void);
+int  freemem();
 
 // ulib.c
 int stat(const char*, struct stat*);
