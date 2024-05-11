@@ -704,6 +704,7 @@ uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
 }
 
 int munmap(uint addr) {
+  /*
   struct proc *p = myproc(); //now process
   struct mmap_area *mmap_cur = 0;
 
@@ -723,6 +724,7 @@ int munmap(uint addr) {
     }
   }
   return 1;
+  */
 }
 
 int freemem() {
