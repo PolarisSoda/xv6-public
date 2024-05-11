@@ -117,13 +117,13 @@ int sys_mmap(void) {
   if(argint(3,&flags) < 0) return -1;
   if(argint(4,&fd) < 0) return -1;
   if(argint(5,&offset) < 0) return -1;
-  return mmap(addr,length,port,flags,fd,offset);
+  return mmap((uint)addr,length,port,flags,fd,offset);
 }
 
 int sys_munmap(void) {
   int addr;
   if(argint(0, &addr) < 0) return -1;
-  return munmap(addr);
+  return munmap((uint)addr);
 }
 
 int sys_freemem(void) {

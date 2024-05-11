@@ -9,7 +9,6 @@
 #include "sleeplock.h"
 #include "fs.h"
 #include "file.h"
-#include "vm.h"
 
 struct {
   struct spinlock lock;
