@@ -670,7 +670,7 @@ uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
       char *phy_addr = tmp_memory[t_cnt] = kalloc(); //tmp_memory[t_cnt]를 언제 다쓰고 있니?
       if(phy_addr == 0) goto DIE_IN; //physical address를 구할수 없었습니다. //이전거 다 밀어야 함.
       memset(phy_addr,0,PGSIZE); //생각해보니 항상 다읽어온다는 보장이 없으니 싹싹밀게요. 원하지 않는 게 나올 수도 있어서.
-      if(filread(f,phy_addr,PGSIZE) == -1) goto EL_FAIL; //fileread should be check. //이미 할당되서 이번걸 밀어야 함.
+      if(fileread(f,phy_addr,PGSIZE) == -1) goto EL_FAIL; //fileread should be check. //이미 할당되서 이번걸 밀어야 함.
       if(mappages(p->pgdir,(void*)(sam + PGSIZE*t_cnt),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto EL_FAIL; //이미 할당되서 이번걸 밀어야 함. //이건 나중에 생각하자.
     }
     f->off = t_off;
