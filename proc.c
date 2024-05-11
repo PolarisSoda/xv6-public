@@ -619,10 +619,109 @@ void ps(int pid) {
 }
 
 uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
+  //important!!!!!! when we get mmap_area, then please reset addr to zero when error occured.
+  //we determine whether this area is using by checking address is bigger than MMAPBASE;
+
+  /* Define Some Variables */
+  struct proc *p = myproc();
+  struct mmap_area *mmap_cur; //pointer that will indicate be used mmap_area
+  struct file *f = fd == -1 ? 0 : filedup(p->ofile[fd]);
+  uint sam = addr + MMAPBASE; //start address of memory
+  int p_cnt = length/PGSIZE; //count of page
+  int PW = (flags&PROT_WRITE); //is it writable?
+  char *tmp_memory[1<<10]; //when mappng pages and alloc, there's will error. then we have to empty mappage and physical memory.
+  int t_cnt = 0; //tmp_memory index
+
+  /* Determining whether condition is apporpriate*/
+  if(addr%PGSIZE || length%PGSIZE) return 0; //addr is always page-aligned, length is also a multiple of page size
+  if((flags&MAP_ANONYMOUS)!=MAP_ANONYMOUS && fd == -1) return 0; //It's not anonymous, but when the fd is -1.
+  if(f && ((prot&PROT_READ)^(f->readable))) return 0; //when have file, check read permission same
+  if(f && ((prot&PROT_WRITE)^(f->writable))) return 0; //when have file, check write permission same
+  if(!f && offset != 0) return 0; //offset is given for only fd. if fd is not given, it should be 0.
+
+  /* Real Code that Execute mmap*/
+  for(int i=0; i<64; i++) if(mmap_area_array[i].addr < MMAPBASE) {mmap_cur = &mmap_area_array[i]; goto found;}
+  return 0; //there's no empty space in mmap_area_array
+
+  found:
+  mmap_cur->f = fd == -1 ? 0 : p->ofile[fd];
+  mmap_cur->addr = addr;
+  mmap_cur->length = length;
+  mmap_cur->offset = offset;
+  mmap_cur->prot = prot;
+  mmap_cur->flags = flags;
+  mmap_cur->p = p;
+
+  // we have to divide several cases.
+  if(flags <= 1) {
+    //no page table allocation needed. just return start address.
+    //it seems that kalloc is not needed.
+    return sam;
+  } else if(flags == 2) {
+    //MAP_POPULATE
+    //PAGE TABLE 만들어야 함.
+    //실제 PHY MAPPING
+    //not anonymous, so it have a file.
+    //kalloc and fill with actual file's context.
+    uint t_off = f->off;
+    f->off = offset;
+    for(t_cnt=0; t_cnt<p_cnt; t_cnt++) {
+      char *phy_addr = tmp_memory[t_cnt] = kalloc(); //tmp_memory[t_cnt]를 언제 다쓰고 있니?
+      if(phy_addr == 0) goto DIE_IN; //physical address를 구할수 없었습니다. //이전거 다 밀어야 함.
+      memset(phy_addr,0,PGSIZE); //생각해보니 항상 다읽어온다는 보장이 없으니 싹싹밀게요. 원하지 않는 게 나올 수도 있어서.
+      if(fileread(f,phy_addr,PGSIZE) == -1) goto EL_FAIL; //fileread should be check. //이미 할당되서 이번걸 밀어야 함.
+      if(mappages(p->pgdir,(void*)(sam + PGSIZE*t_cnt),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto EL_FAIL; //이미 할당되서 이번걸 밀어야 함. //이건 나중에 생각하자.
+    }
+    f->off = t_off;
+    return sam;
+  } else if(flags == 3) {
+    //MAP_ANONYMOUS | MAP_POPULATE
+    for(t_cnt=0; t_cnt<p_cnt; t_cnt++) {
+      char *phy_addr = tmp_memory[t_cnt] = kalloc();
+      if(phy_addr == 0) goto DIE_IN;
+      memset(phy_addr,0,PGSIZE);
+      if(mappages(p->pgdir,(void*)(sam + PGSIZE*t_cnt),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto EL_FAIL;
+    }
+    return sam;
+  } else {mmap_cur->addr = 0; return 0;} //Not Defined Flag -> FAIL;
+
+  EL_FAIL:
+  //t_cnt가 할당은 됨.
+  memset(tmp_memory[t_cnt],0,PGSIZE);
+  kfree(tmp_memory[t_cnt]);
+  DIE_IN:
+  //t_cnt-1 까지 kfree 및 page 삭제
+  for(int i=0; i<t_cnt; i++) {
+    pte_t *PTE;
+    //
+    PTE = walkpgdir(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE),0);
+    *PTE = 0;
+    memset(tmp_memory[t_cnt],0,PGSIZE);
+    kfree(tmp_memory[t_cnt]);
+  }
+  mmap_cur->addr = 0;
   return 0;
 }
 
 int munmap(uint addr) {
+  struct proc *p = myproc(); //now process
+  struct mmap_area *mmap_cur = 0;
+
+  for(int i=0; i<64; i++) if(mmap_area_array[i].addr == addr) {mmap_cur = &mmap_area_array[i]; goto found;}
+  return -1;
+
+  found:
+  int p_cnt = mmap_cur->length/PGSIZE;
+  for(int i=0; i<p_cnt; i++) {
+    pte_t *PTE;
+    PTE = walkpgdir(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE),0); //page tabe entry가 나온다.
+    if(PTE != 0 && (*PTE&PTE_P)) {
+      char* VA = P2V(PTE_ADDR(*PTE));
+      memset(VA,1,PGSIZE); //fill with 1
+      kfree(VA); //when freeing the physical page
+      *PTE = 0;  //*PTE ^= PTE_P; ->this will work correctly maybe.
+    }
+  }
   return 1;
 }
 
