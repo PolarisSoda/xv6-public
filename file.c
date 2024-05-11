@@ -10,8 +10,6 @@
 #include "file.h"
 #include "spinlock.h"
 
-
-
 struct devsw devsw[NDEV];
 struct {
   struct spinlock lock;
