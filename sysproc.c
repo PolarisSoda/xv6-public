@@ -126,6 +126,6 @@ int sys_munmap(void) {
   return munmap((uint)addr);
 }
 
-int sys_freeme(void) {
+int sys_freemem(void) {
   return freemem();
 }
