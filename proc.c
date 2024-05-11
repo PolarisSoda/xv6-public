@@ -6,13 +6,13 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "file.h"
 
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
 } ptable;
 struct mmap_area mmap_area_array[64];
-
 static struct proc *initproc;
 
 int nextpid = 1;
@@ -616,14 +616,178 @@ void ps(int pid) {
   release(&ptable.lock);
 }
 
-uint mmap(uint addr,int length,int port,int flags,int fd,int offset) {
+uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
+  //important!!!!!! when we get mmap_area, then please reset addr to zero when error occured.
+  //we determine whether this area is using by checking address is bigger than MMAPBASE;
+
+  /* Define Some Variables */
+  struct proc *p = myproc();
+  struct mmap_area *mmap_cur; //pointer that will indicate be used mmap_area
+  struct file *f = fd == -1 ? 0 : filedup(p->ofile[fd]);
+  uint sam = addr + MMAPBASE; //start address of memory
+  int p_cnt = length/PGSIZE; //count of page
+  int PW = (flags&PROT_WRITE); //is it writable?
+  char *tmp_memory[1<<10]; //when mappng pages and alloc, there's will error. then we have to empty mappage and physical memory.
+  int t_cnt = 0; //tmp_memory index
+
+  /* Determining whether condition is apporpriate*/
+  if(addr%PGSIZE || length%PGSIZE) return 0; //addr is always page-aligned, length is also a multiple of page size
+  if((flags&MAP_ANONYMOUS)!=MAP_ANONYMOUS && fd == -1) return 0; //It's not anonymous, but when the fd is -1.
+  if(f && ((prot&PROT_READ)^(f->readable))) return 0; //when have file, check read permission same
+  if(f && ((prot&PROT_WRITE)^(f->writable))) return 0; //when have file, check write permission same
+  if(!f && offset != 0) return 0; //offset is given for only fd. if fd is not given, it should be 0.
+
+  /* Real Code that Execute mmap*/
+  for(int i=0; i<64; i++) if(mmap_area_array[i].addr < MMAPBASE) {mmap_cur = &mmap_area_array[i]; goto found;}
+  return 0; //there's no empty space in mmap_area_array
+
+  found:
+  mmap_cur->f = fd == -1 ? 0 : p->ofile[fd];
+  mmap_cur->addr = addr;
+  mmap_cur->length = length;
+  mmap_cur->offset = offset;
+  mmap_cur->prot = prot;
+  mmap_cur->flags = flags;
+  mmap_cur->p = p;
+
+  // we have to divide several cases.
+  if(flags <= 1) {
+    //no page table allocation needed. just return start address.
+    //it seems that kalloc is not needed.
+    return sam;
+  } else if(flags == 2) {
+    //MAP_POPULATE
+    //PAGE TABLE 만들어야 함.
+    //실제 PHY MAPPING
+    //not anonymous, so it have a file.
+    //kalloc and fill with actual file's context.
+    uint t_off = f->off;
+    f->off = offset;
+    for(t_cnt=0; t_cnt<p_cnt; t_cnt++) {
+      char *phy_addr = tmp_memory[t_cnt] = kalloc(); //tmp_memory[t_cnt]를 언제 다쓰고 있니?
+      if(phy_addr == 0) goto DIE_IN; //physical address를 구할수 없었습니다. //이전거 다 밀어야 함.
+      memset(phy_addr,0,PGSIZE); //생각해보니 항상 다읽어온다는 보장이 없으니 싹싹밀게요. 원하지 않는 게 나올 수도 있어서.
+      if(filread(f,phy_addr,PGSIZE) == -1) goto EL_FAIL; //fileread should be check. //이미 할당되서 이번걸 밀어야 함.
+      if(mappages(p->pgdir,(void*)(sam + PGSIZE*t_cnt),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto EL_FAIL; //이미 할당되서 이번걸 밀어야 함. //이건 나중에 생각하자.
+    }
+    f->off = t_off;
+    return sam;
+  } else if(flags == 3) {
+    //MAP_ANONYMOUS | MAP_POPULATE
+    for(t_cnt=0; t_cnt<p_cnt; t_cnt++) {
+      char *phy_addr = tmp_memory[t_cnt] = kalloc();
+      if(phy_addr == 0) goto DIE_IN;
+      memset(phy_addr,0,PGSIZE);
+      if(mappages(p->pgdir,(void*)(sam + PGSIZE*t_cnt),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto EL_FAIL;
+    }
+    return sam;
+  } else {mmap_cur->addr = 0; return 0;} //Not Defined Flag -> FAIL;
+
+  EL_FAIL:
+  //t_cnt가 할당은 됨.
+  memset(tmp_memory[t_cnt],0,PGSIZE);
+  kfree(tmp_memory[t_cnt]);
+  DIE_IN:
+  //t_cnt-1 까지 kfree 및 page 삭제
+  for(int i=0; i<t_cnt; i++) {
+    pte_t *PTE = walkpgdir(p->pgdir,mmap_cur->addr+i*PGSIZE,0);
+    *PTE = 0;
+    memset(tmp_memory[t_cnt],0,PGSIZE);
+    kfree(tmp_memory[t_cnt]);
+  }
+  mmap_cur->addr = 0;
   return 0;
 }
 
 int mummap(uint addr) {
+  struct proc *p = myproc(); //now process
+  struct mmap_area *mmap_cur = 0;
+
+  for(int i=0; i<64; i++) if(mmap_area_array[i].addr == addr) {mmap_cur = &mmap_area_array[i]; goto found;}
+  return -1;
+
+  found:
+  int p_cnt = mmap_cur->length/PGSIZE;
+  for(int i=0; i<p_cnt; i++) {
+    pte_t *PTE = walkpgdir(p->pgdir,mmap_cur->addr+i*PGSIZE,0); //page tabe entry가 나온다.
+    if(PTE != 0 && (*PTE&PTE_P)) {
+      char* VA = P2V(PTE_ADDR(*PTE));
+      memset(VA,1,PGSIZE); //fill with 1
+      kfree(VA); //when freeing the physical page
+      *PTE = 0;  //*PTE ^= PTE_P; ->this will work correctly maybe.
+    }
+  }
+  return 1;
+}
+
+int freemem(void) {
+  //이건 잘 모르겠는데요.
   return 0;
 }
 
-int freemap(void) {
-  return 0;
-}
+/*
+                                                           :8DDDDDDDDDDDDDD$.                                           
+                                                      DDDNNN8~~~~~~~~~~=~7DNNDNDDDNNI                                   
+                                                  ?NNDD=~=~~~~~~~~~~~~~~~~~=~~==~=INNDNN7                               
+                                               +NDDI~~~~~~~~~~~~~~~~~~~~~~~=~~========~ODND+                            
+                                            :NND~~~~~~~~~~~~~~~~~~~~~~~~~~~=~~============7NDN                          
+                                          $DD$~~~~~~~~~~~~~~~~~~~~~~~~~~~~~=~~==============~DNN                        
+                                        $DD=~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~=~~=================NND                      
+                                       ND7~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~=~~===================DD7                    
+                                     ~DD=~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~=======================8DN.                  
+                                    8DO~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~=========================DD                  
+                                   8N~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~=~~=======================DN                 
+                                  NN::::::::~~~~~~~~~~~=~~~~~~~~~~~~~~~~~~~=~~========================DDO               
+                                 $D$:::::::::::::::~~~~DD~~~~~~~~~~~~~~~~~~=~~=========================DN.              
+                                 D8:::::::::::::::::::DN=::~~~~~~~~~~~~~~~~=~~======================~~:~DN              
+                                DN:::::::::::::::::::ONO::::::::::::::::::::~~~~~~~~~~~~:::::::::::::::::DN             
+                               DN::::::::::::::::::::NN.:::::::::::::::::::::::::::DN::::::::::::::::::::$DO            
+                               DD:::::::::::::::::::DNI:::::::::::::::::::::::::::::D=::::::::::::::::::::NN            
+                              NN~~~~:::::$N?:::::::.NN::::::::::::::::::::::::::::::ND.:::::::::::::::::::+N8           
+                              N7~~~~~~~~OD7::::::::~DD::::::::::::::::::::::::::::::~D$::::::::::::::::::::DN           
+                             NN~~~~~~~~IDZ~~~~~::::DN~:::::::::::::::::::::::::::::::DN::::::::::::::::::::=N~          
+                             DD~~~~~~~~NN~~~~~~~~~=NN::::::::::::::::::::::::::::::::DN:::::::::::::::~~====NN          
+                            8D~~~~~~~~ND~~~~~~~~~~~ND~~~~~~~~:::::::::::::::::::::::::N7:::~~===============NN          
+                            DD~~~~~~~ON+~~~~~~~~~~~ND~~~~~~~~~~~~~~~~~~~=+NZ==========NN====================~ND         
+               :DD7   DNDD. N8~~~~~~~NN~~~~~~~~~~DDND~~~~~~~~~~~~~~~~~~~~ND~~=========DD=====================ND         
+               N~:DDNNN .8NDN~~~~~~~$D=~~~~~~~~+ND.DD~~~~~~~~~~~~~~~~~~~=DD~~=========~D+====================DN         
+              :D     .  ..~ND~~~~~~~NN~~~~~~~+NN$..ND~~~~~~~~~~~~~~~~~~~7N=~~=========~ND=======~============ON         
+              NN       ...:N?~~~~~~~N=~~~~~NNNI.. .7D+~~~~~~~~~~~~~~~~~=8NN~~==========NN=======N============$N         
+         N  ODN       ....DN~~~~~~~DD=8NNND$..     .DD~~~=~~~~~~~~~~~~~=NNDD=~=========8D~======NN===========~N$        
+    N? =NN  ND      .....NND~~~~~~~DDNN:...        .ND=~DNN~~~~~~~~~~~~=DN.DN~=========?N+======NN============ND        
+   $D? DN    DZ    ....ND8NN~~~~~~$D                .DD~NNDD~~~~~~~~~~~~D8..DN=========~DN======NN============DN        
+   DN ~N~   NN    ..:~NN..NZ~~~~~~DN                  NNN8.ND~~~~NDN?~~~DZ...7DD=======~NN======NN============DN        
+   ND DD    :DN.  ..ND$  .N?~~~~~=NNN                   . ..DDD$~N8OND8=N+   ..DDDZ~====NN======+D+===========ND        
+   NO         DD  ZDN    8NO~~~~~~NNN..DDDNN7               ...NND...:DDD:     .:.NDND=~DD======~DO===========DN        
+              DNDDN:.    DN~~~~~~=NNNN.ODNNNNDDNNO              ...     .         ...DNNNN=======ND===========DD        
+       INDN7    DD.     .DD~~~~~=IDND:.:~.....?DNDNN.                        ...... ....$D=======ND===========ND        
+       NN        ND.    8N=~~~~$ND::.:=~:.~=......=ND~                 .NNNNNNNNNNNNNNN.~N+======NN===========DN        
+       $DD        DN:   DD~~~~7NO...~==.:~~:.....                      NNNND? ..::..7NZ.:N?======8D~==========ZN        
+       DN?     ~D: DND.?D~~~~~DD....~:.~=~.......                            ....~=:.:~..ND======~N$==========~DO       
+       ND    ..DD.  .DNDN=~~~~DI.......:.........                           ....=~..~~~..DN======~DD===========NN       
+       DDD  :.:DD.  . DDI~~~~~ND................        .DNNNNNNNNNN7      ....=~:.:~~...NN=======ND===========?D~      
+       8D. ...OD..    DD~~~~~~+ND ............          NN:~::::~~~8N      ........~~...:ND=======DN============NN      
+       DDI:...ND     .D7~~~~~~~7NN ..........           ID8::::::::8D      .............:DN=======ON============NN      
+        ~NNND.N=.   .NN~~~~~~~~~NDN8                       ~::::::~N8       .............DN========D=============NI     
+               DDNNN.ND~~~~~~~~DD =DND                                       ............DN========N+~===========NN     
+                   ~:N=~~~~~~~~DD   .DDDD                                       ........ NN========DD============8D     
+                    8N~~~~~~~~~ND    . .7NDDD? .                                      .8DDN========NN=============D:    
+                    DD~~~~~~~~~DND:         IDNNND$.                           .+DNNNNDNIDN========DD=============DD    
+                    ND~~~~~~~~ZN 7DD .. .:DDNDDNNDNNNNDDNDND8$?===+$8DDNNNDDDDDN8I~DN====8N========NN=============NN    
+                    DD~~~~~~~~8N   DD.  .NN~~~~.~~=DNDNO.:7ODDDDNNDD8DDDND=~~~ =~~~ON====8N========DN=============DN    
+                    ND~~~~~~~~DN    ZDD  DN~~~ ~~~~~=.7DDD+.......8NNN==~~~~~ ~~~~~ONN$==DN========8N=============ON    
+                    ND~8N~=~~~ZN      DDODN=~.~~~~~=.~~~~INDNNNNDNN~~~~~~~~:~~~~~~~DN~ND=DN========DD=========~ND=8N    
+                    IN=NDDI~~~~D8       DNN::~~~~~.~~~~~=.~~ND~~ND~~~~~~~~.~~~~~~~~NN  NDNN====ND==ND~D?======DNN=ND    
+                     DNNI8ND=~~DN:       ZN=~~~~~ ~~~~~.~~~~DD~=DD~~~~~~~ ~~~~~~~=.ND. . ND===DNDD=NDDNN=====8NZDDDN    
+                      NND  IDNDNNN+       D+~~~:~~~~~~ ~~~~~DDNNN+~~~~~~~~~~~~~~:=?N7   .ND=~ND  DNNN~ID====ND7 NNN     
+                       ID                 ND~~ ~~~~~:.~~~7DDN7IDNN==~~ ~~~~~~~~ ~~DN   .:N?DDDDD NND  8N~=DDD  ZNN      
+                                          NN~:~~~~~ =7DDDD+8N  :N8DDZ.~~~~~~~~.~~~DD.   NDD+ . DN=     OND+             
+                                          DND~~~=8DNDDZ=~~ ND   NN~INND~~~~~.~~~~ND .    .    ..IDD                     
+                                         DDNNNDNNN+~~~~~~.7N.    ND~~~NDDI~ ~~~~=NNN             .DDI                   
+                                        DN=~~~~.=~~~~~~ ~~DN     +N+~~~~+DNDD~~~NNNND.            ..ND                  
+                                         DDI~~ ~~~~~~~ ~~~ND..  ..ND~~~~:~~~DNDNNNN+            ..7O8ND+                
+                                          .DND=~~~~=::~~=NN.   . . 8D~~.~~~~~~=DN$ODNDNDNNNDNNNNND8+~..                 
+                                             8DNNI=.~~~~=NDDNNNNDDNDNN.~~~~~IDDNDND7:.                                  
+                                                ?DNNDD?~DD          ~NN~~=NDD$                                          
+                                                     :DDD.            NNNN=                                             
+*/

@@ -110,13 +110,23 @@ int sys_ps(void) {
 }
 
 int sys_mmap(void) {
-
+  uint addr;
+  int length,port,flags,fd,offset;
+  if(argint(0,&addr) < 0) return -1;
+  if(argint(1,&length) < 0) return -1;
+  if(argint(2,&port) < 0) return -1;
+  if(argint(3,&flags) < 0) return -1;
+  if(argint(4,&fd) < 0) return -1;
+  if(argint(5,&offset) < 0) return -1;
+  return mmap(addr,length,port,flags,fd,offset);
 }
 
 int sys_munmap(void) {
-
+  uint addr;
+  if(argint(0, &addr) < 0) return -1;
+  return munmap(addr);
 }
 
 int sys_freemem(void) {
-  
+  return freemem();
 }

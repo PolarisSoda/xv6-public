@@ -59,13 +59,13 @@ struct proc {
 };
 
 struct mmap_area {
-  struct file *f;
-  uint addr;
-  int length;
-  int offset;
-  int prot;
-  int flags;
-  struct proc *p;
+  struct file *f; //file descriptor maybe...
+  uint addr; //address of virtual address
+  int length; //length that starts of virtual address
+  int offset; //offset in page
+  int prot; //protection
+  int flags; //flags that what it is.
+  struct proc *p; //address of possessing process
 };
 
 // Process memory is laid out contiguously, low addresses first:
