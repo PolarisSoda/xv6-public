@@ -141,7 +141,7 @@ found:
 void
 userinit(void)
 {
-  cprintf("%d",ff_cnt);
+  cprintf("!!!!!%d!!!!!\n",ff_cnt);
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
 
