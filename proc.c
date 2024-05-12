@@ -18,6 +18,7 @@ struct {
 static struct proc *initproc;
 struct mmap_area mmap_area_array[64];
 
+extern int ff_cnt;
 int nextpid = 1;
 int weight[40] = {
   88761, 71755, 56483, 46273, 36291,
@@ -140,6 +141,7 @@ found:
 void
 userinit(void)
 {
+  cprintf("%d",ff_cnt);
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
 
@@ -243,6 +245,14 @@ int fork(void) {
 
   release(&ptable.lock);
 
+  //MMAP_AREA와 그에 따른 PHYTABLE 할당.
+  struct mmap_area* mmap_cur;
+  for(int i=0; i<64; i++) {
+    mmap_cur = &mmap_area_array[i];
+    if(mmap_cur->p == np->parent) {
+
+    }
+  }
   return pid;
 }
 
@@ -645,7 +655,7 @@ uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
 
   found:
   mmap_cur->f = fd == -1 ? 0 : p->ofile[fd];
-  mmap_cur->addr = addr;
+  mmap_cur->addr = sam;
   mmap_cur->length = length;
   mmap_cur->offset = offset;
   mmap_cur->prot = prot;
@@ -670,7 +680,7 @@ uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
       if(phy_addr == 0) goto DIE_IN; //physical address를 구할수 없었습니다. //이전거 다 밀어야 함.
       memset(phy_addr,0,PGSIZE); //생각해보니 항상 다읽어온다는 보장이 없으니 싹싹밀게요. 원하지 않는 게 나올 수도 있어서.
       if(fileread(f,phy_addr,PGSIZE) == -1) goto EL_FAIL; //fileread should be check. //이미 할당되서 이번걸 밀어야 함.
-      if(mappages(p->pgdir,(void*)(sam + PGSIZE*t_cnt),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto EL_FAIL; //이미 할당되서 이번걸 밀어야 함. //이건 나중에 생각하자.
+      if(mappages(p->pgdir,(void*)(sam + PGSIZE*t_cnt),PGSIZE,V2P(phy_addr),PW|PTE_U|PTE_P) == -1) goto EL_FAIL; //이미 할당되서 이번걸 밀어야 함. //이건 나중에 생각하자.
     }
     f->off = t_off;
     return sam;
@@ -680,7 +690,7 @@ uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
       char *phy_addr = tmp_memory[t_cnt] = kalloc();
       if(phy_addr == 0) goto DIE_IN;
       memset(phy_addr,0,PGSIZE);
-      if(mappages(p->pgdir,(void*)(sam + PGSIZE*t_cnt),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto EL_FAIL;
+      if(mappages(p->pgdir,(void*)(sam + PGSIZE*t_cnt),PGSIZE,V2P(phy_addr),PW|PTE_U|PTE_P) == -1) goto EL_FAIL;
     }
     return sam;
   } else {mmap_cur->addr = 0; return 0;} //Not Defined Flag -> FAIL;
@@ -722,9 +732,47 @@ int munmap(uint addr) {
       *PTE = 0;  //*PTE ^= PTE_P; ->this will work correctly maybe.
     }
   }
+  mmap_cur->addr = 0;
   return 1;
 }
 
 int freemem() {
-  return 0;
+  return ff_cnt;
+}
+
+//TODO : freemem 구현, page_fault_handler 구현.
+
+int page_fault_handler(uint addr,int prot) {
+  struct proc *p = myproc();
+  struct mmap_area *mmap_cur = 0;
+
+  for(int i=0; i<64; i++) {
+    mmap_cur = &mmap_area_array[i];
+    uint left = mmap_cur->addr, right = left + mmap_cur->length;
+    if(addr>=left && addr<right) goto found; //addr의 주소를 포함하는 mmap_area를 가져오기.
+  }
+  return -1;
+
+  found:
+  if(prot && !(mmap_cur->prot&PROT_WRITE)) return -1; //If fault was write while mmap_area is write prohibited
+
+  int PW = mmap_cur->flags&PROT_WRITE;
+  int p_cnt = mmap_cur->length/PGSIZE;
+  for(int i=0; i<p_cnt; i++) {
+    uint left = mmap_cur->addr + i*PGSIZE, right = left + PGSIZE;
+    if(left <= addr && addr < right) {
+      //fault occured at this page.
+      char *phy_addr = kalloc();
+      if(phy_addr == 0) goto KFF;
+      memset(phy_addr,0,PGSIZE);
+      if(mmap_cur->f) if(fileread(mmap_cur->f,phy_addr,PGSIZE) == -1) goto KFF;
+      if(mappages(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE),PGSIZE,V2P(phy_addr),PW|PTE_U|PTE_P) == -1) goto KFF;
+      return 1;
+
+      KFF:
+      kfree(phy_addr);
+      return -1;
+    }
+  }
+  return -1; //no page!
 }

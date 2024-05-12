@@ -9,6 +9,7 @@
 #include "mmu.h"
 #include "spinlock.h"
 
+int ff_cnt;
 void freerange(void *vstart, void *vend);
 extern char end[]; // first address after kernel loaded from ELF file
                    // defined by the kernel linker script in kernel.ld
@@ -74,6 +75,7 @@ kfree(char *v)
   kmem.freelist = r;
   if(kmem.use_lock)
     release(&kmem.lock);
+  ff_cnt++;
 }
 
 // Allocate one 4096-byte page of physical memory.
@@ -92,5 +94,6 @@ kalloc(void)
   if(kmem.use_lock)
     release(&kmem.lock);
   return (char*)r;
+  ff_cnt--;
 }
 
