@@ -77,16 +77,16 @@ void trap(struct trapframe *tf) {
     break;
   case T_PGFLT:
     cprintf("PGFAULT OCCUR\n");
-    /*
+    
     uint addr = rcr2();
 		uint pages = PGROUNDDOWN(addr);
 		char* phy_addr = kalloc();
-		if(phy_addr == 0) exit();
+		if(phy_addr == 0) kree(phy_addr),exit(0);
 		memset(phy_addr,0,PGSIZE);
 		mappages(myproc()->pgdir,(char*)pages,PGSIZE,V2P(addr),PTE_W|PTE_U);
     cprintf("PAFAULT RESOLVED\n");
 		break;
-    */
+    
     if(page_fault_handler(rcr2(),tf->err&2) == -1) exit();
     cprintf("PAFAULT RESOLVED\n");
     break;
