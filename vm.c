@@ -35,7 +35,7 @@ seginit(void)
 pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
   pde_t *pde;
   pte_t *pgtab;
-
+  cprintf("%p",va);
   pde = &pgdir[PDX(va)];
   if(*pde & PTE_P){
     pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
@@ -61,7 +61,6 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
 
   a = (char*)PGROUNDDOWN((uint)va);
   last = (char*)PGROUNDDOWN(((uint)va) + size - 1);
-  cprintf("%x %x\n",a,last);
   for(;;){
     if((pte = walkpgdir(pgdir, a, 1)) == 0)
       return -1;
