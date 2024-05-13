@@ -751,6 +751,7 @@ int page_fault_handler(uint addr,int prot) {
   int PW = mmap_cur->flags&PROT_WRITE;
   int p_cnt = mmap_cur->length/PGSIZE;
   for(int i=0; i<p_cnt; i++) {
+    cprintf("idx : %d\n",i);
     uint left = mmap_cur->addr + i*PGSIZE, right = left + PGSIZE;
     if(left <= addr && addr < right) {
       //fault occured at this page.
