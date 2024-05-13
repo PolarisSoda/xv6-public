@@ -81,7 +81,7 @@ void trap(struct trapframe *tf) {
     uint addr = rcr2();
 		uint pages = PGROUNDDOWN(addr);
 		char* phy_addr = kalloc();
-		if(phy_addr == 0) kree(phy_addr),exit(0);
+		if(phy_addr == 0) kfree(phy_addr),exit();
 		memset(phy_addr,0,PGSIZE);
 		mappages(myproc()->pgdir,(char*)pages,PGSIZE,V2P(addr),PTE_W|PTE_U);
     cprintf("PAFAULT RESOLVED\n");
