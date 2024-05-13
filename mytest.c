@@ -30,7 +30,7 @@ int main() {
     int fd2 = open("README",O_RDWR);
     char* temp3 = (char*)mmap(8192,4096,PROT_READ|PROT_WRITE,0,fd2,0); //this will occur pagefault.
     if(temp3 == 0) exit();
-    printf("%c\n",temp3[0]);
+    printf(1,"%c\n",temp3[0]);
     //s0 = temp3[0],s10 = temp3[10];
     //temp3[0] = '1',temp3[10] = 0;
     //t//emp3[0] = s0,temp3[10] = s10;
