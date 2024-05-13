@@ -200,6 +200,7 @@ growproc(int n)
 // Caller must set state of returned proc to RUNNABLE.
 // fork was modified to inherit the runtime and values[PROJ2]
 int fork(void) {
+  cprintf("FORKED!!!!\n");
   int i, pid;
   struct proc *np;
   struct proc *curproc = myproc();
