@@ -15,8 +15,8 @@
 int main() {
     int fd = open("README",O_RDWR);
     printf(1,"%d!",freemem());
-    uint temp = mmap(0,4096,PROT_READ|PROT_WRITE,MAP_POPULATE,fd,0);
-    printf(1,"%c",&temp);
-    printf(1,"%d",freemem());
+    uint temp = mmap(0,8192,PROT_READ|PROT_WRITE,MAP_POPULATE,fd,4096);
+    write(1,(void*)temp,12);
+    printf(1,"%d\n",freemem());
     exit();
 }
