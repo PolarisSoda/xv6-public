@@ -14,10 +14,11 @@
 
 int main() {
     printf(1,"Free Page : %d!\n",freemem());
-    int fd = open("player.txt",O_RDWR);
+    int fd = open("README",O_RDWR);
     if(fd == -1) exit();
     char* temp = (char*)mmap(0,4096,PROT_READ|PROT_WRITE,MAP_POPULATE,fd,0);
-    printf(1,"%s\n",temp[0]);
+    char s0 = temp[0];
+    char s10 = temp[10];
     temp[0] = '1';
     temp[10] = 0;
     printf(1,"%s\n",temp);
