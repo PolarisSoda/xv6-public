@@ -746,7 +746,6 @@ int freemem() {
 }
 
 int page_fault_handler(uint addr,int prot) {
-  cprintf("Error Occured at : %x\n",addr);
   struct proc *p = myproc();
   struct mmap_area *mmap_cur = 0;
   for(int i=0; i<64; i++) {
@@ -765,6 +764,7 @@ int page_fault_handler(uint addr,int prot) {
     uint left = mmap_cur->addr + i*PGSIZE, right = left + PGSIZE;
     if(left<=addr && addr<right) {
       //fault occured at this page.
+      cprintf("%d %d\n",PGROUNDDOWN(addr),mmap_cur->addr+i*PGSIZE);
       char *phy_addr = kalloc();
       if(phy_addr == 0) goto KFF;
       memset(phy_addr,0,PGSIZE);
