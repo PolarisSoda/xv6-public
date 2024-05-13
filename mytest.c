@@ -24,6 +24,7 @@ int main() {
     printf(1,"%s\n",temp);
     temp[0] = s0;
     temp[10] = s10;
+    printf(1,"Free Page : %d!\n",freemem());
     exit();
     
 }
