@@ -734,6 +734,7 @@ int freemem() {
 }
 
 int page_fault_handler(uint addr,int prot) {
+  cprintf("Error Occured at : %d\n",addr);
   struct proc *p = myproc();
   struct mmap_area *mmap_cur = 0;
 
