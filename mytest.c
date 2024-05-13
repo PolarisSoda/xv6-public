@@ -22,6 +22,8 @@ int main() {
     temp[0] = '1';
     temp[10] = 0;
     printf(1,"%s\n",temp);
+    temp[0] = s0;
+    temp[10] = s10;
     exit();
     
 }
