@@ -651,7 +651,7 @@ uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
   int PW = (flags&PROT_WRITE); //is it writable?
   char *tmp_memory[1<<15]; //when mappng pages and alloc, there's will error. then we have to empty mappage and physical memory.
   int t_cnt = 0; //tmp_memory index
-
+  cprintf("%x!\n",sam);
   /* Determining whether condition is apporpriate*/
   if(addr%PGSIZE || length%PGSIZE) return 0; //addr is always page-aligned, length is also a multiple of page size
   if((flags&MAP_ANONYMOUS)!=MAP_ANONYMOUS && fd == -1) return 0; //It's not anonymous, but when the fd is -1.
@@ -745,10 +745,9 @@ int freemem() {
 }
 
 int page_fault_handler(uint addr,int prot) {
-  cprintf("Error Occured at : %d\n",addr);
+  cprintf("Error Occured at : %x\n",addr);
   struct proc *p = myproc();
   struct mmap_area *mmap_cur = 0;
-  cprintf("%d\n",&p->pgdir);
   for(int i=0; i<64; i++) {
     mmap_cur = &mmap_area_array[i];
     uint left = mmap_cur->addr, right = left + mmap_cur->length;
@@ -762,7 +761,6 @@ int page_fault_handler(uint addr,int prot) {
   int PW = mmap_cur->flags&PROT_WRITE;
   int p_cnt = mmap_cur->length/PGSIZE;
   for(int i=0; i<p_cnt; i++) {
-    cprintf("idx : %d\n",i);
     uint left = mmap_cur->addr + i*PGSIZE, right = left + PGSIZE;
     if(left <= addr && addr < right) {
       //fault occured at this page.
@@ -770,11 +768,11 @@ int page_fault_handler(uint addr,int prot) {
       if(phy_addr == 0) goto KFF;
       memset(phy_addr,0,PGSIZE);
       pte_t* addr = walkpgdir(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE),0);
-      cprintf("%d\n",&addr);
+      cprintf("%x\n",&addr);
       if(mmap_cur->f) fileread(mmap_cur->f,phy_addr,PGSIZE);
       if(mappages(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE),PGSIZE,V2P(phy_addr),PW|PTE_U|PTE_P) == -1) goto KFF;
       addr = walkpgdir(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE),0);
-      cprintf("%d\n",&addr);
+      cprintf("%x\n",&addr);
       return 1;
 
       KFF:
