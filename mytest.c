@@ -13,10 +13,11 @@
 
 
 int main() {
+    printf(1,"Free Page : %d!\n",freemem());
     int fd = open("README",O_RDWR);
-    printf(1,"%d!",freemem());
-    uint temp = mmap(0,8192,PROT_READ|PROT_WRITE,MAP_POPULATE,fd,4096);
-    printf(1,"%d\n",temp);
-    printf(1,"%d\n",freemem());
+    char* temp = (char*)mmap(0,4096,PROT_READ|PROT_WRITE,MAP_POPULATE,fd,0);
+    printf(1,"%s\n",temp);
+    //printf(1,"%d\n",freemem());
     exit();
+    
 }
