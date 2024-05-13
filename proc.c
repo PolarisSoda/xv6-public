@@ -644,8 +644,8 @@ uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
   /* Determining whether condition is apporpriate*/
   if(addr%PGSIZE || length%PGSIZE) return 0; //addr is always page-aligned, length is also a multiple of page size
   if((flags&MAP_ANONYMOUS)!=MAP_ANONYMOUS && fd == -1) return 0; //It's not anonymous, but when the fd is -1.
-  if(f && ((prot&PROT_READ)^(f->readable))) return 0; //when have file, check read permission same
-  if(f && ((prot&PROT_WRITE)^(f->writable))) return 0; //when have file, check write permission same
+  if(f && ((prot&PROT_READ) == PROT_READ && f->readable == 0)) return 0; //when have file, check read permission same
+  if(f && ((prot&PROT_WRITE) == PROT_WRITE && f->writable == 0)) return 0; //when have file, check write permission same
   if(!f && offset != 0) return 0; //offset is given for only fd. if fd is not given, it should be 0.
 
   /* Real Code that Execute mmap*/
@@ -673,7 +673,7 @@ uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
       char *phy_addr = tmp_memory[t_cnt] = kalloc(); //tmp_memory[t_cnt]를 언제 다쓰고 있니?
       if(phy_addr == 0) goto DIE_IN; //physical address를 구할수 없었습니다. //이전거 다 밀어야 함.
       memset(phy_addr,0,PGSIZE); //생각해보니 항상 다읽어온다는 보장이 없으니 싹싹밀게요. 원하지 않는 게 나올 수도 있어서.
-      if(fileread(f,phy_addr,PGSIZE) == -1) goto EL_FAIL; //fileread should be check. //이미 할당되서 이번걸 밀어야 함.
+      fileread(f,phy_addr,PGSIZE);
       if(mappages(p->pgdir,(void*)(sam + PGSIZE*t_cnt),PGSIZE,V2P(phy_addr),PW|PTE_U|PTE_P) == -1) goto EL_FAIL; //이미 할당되서 이번걸 밀어야 함.
     }
     f->off = t_off;
@@ -756,7 +756,7 @@ int page_fault_handler(uint addr,int prot) {
       char *phy_addr = kalloc();
       if(phy_addr == 0) goto KFF;
       memset(phy_addr,0,PGSIZE);
-      if(mmap_cur->f) if(fileread(mmap_cur->f,phy_addr,PGSIZE) == -1) goto KFF;
+      if(mmap_cur->f) fileread(mmap_cur->f,phy_addr,PGSIZE);
       if(mappages(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE),PGSIZE,V2P(phy_addr),PW|PTE_U|PTE_P) == -1) goto KFF;
       return 1;
 

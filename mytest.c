@@ -1,6 +1,15 @@
 #include "types.h"
 #include "stat.h"
 #include "user.h"
+#include "fcntl.h"
+#include "memlayout.h"
+#include "mmu.h"
+#include "param.h"
+#include "spinlock.h"
+#include "sleeplock.h"
+#include "fs.h"
+#include "proc.h"
+#include "syscall.h"
 
 //1억번 = 1초였던가.
 //약 15초동안 cpu를 혹사시킵니다.
@@ -9,31 +18,9 @@ void starvation() {
 }
 
 int main() {
-    int pid = fork();
-    if(pid == 0) {
-        //child
-        int ppid = fork();
-        if(ppid == 0) {
-            starvation();
-            printf(1,"C\n");
-            ps(0);
-            exit();
-        } else {
-            setnice(ppid,17);
-            starvation();
-            printf(1,"P\n");
-            ps(0);
-            wait();
-            exit();
-        }
-    } else {
-        //grand-parent
-        setnice(pid,10);
-        starvation();
-        printf(1,"GP\n");
-        ps(0);
-        wait();
-    }
-    ps(0);
+    int fd = open("README",O_RDWR);
+    uint temp = mmap(0,4096,PROT_READ|PROT_WRITE,MAP_POPULATE,fd,0);
+    
+    cprintf("%c",&temp);
     exit();
 }
