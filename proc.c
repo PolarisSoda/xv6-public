@@ -773,7 +773,7 @@ int page_fault_handler(uint addr,int prot) {
       cprintf("%d\n",&addr);
       if(mmap_cur->f) fileread(mmap_cur->f,phy_addr,PGSIZE);
       if(mappages(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE),PGSIZE,V2P(phy_addr),PW|PTE_U|PTE_P) == -1) goto KFF;
-      pte_t* addr = walkpgdir(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE),0);
+      addr = walkpgdir(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE),0);
       cprintf("%d\n",&addr);
       return 1;
 
