@@ -80,6 +80,7 @@ void trap(struct trapframe *tf) {
     
     uint addr = rcr2();
 		uint pages = PGROUNDDOWN(addr);
+    cprintf("!%d!",pages);
 		char* phy_addr = kalloc();
 		if(phy_addr == 0) kfree(phy_addr),exit();
 		memset(phy_addr,0,PGSIZE);
