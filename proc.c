@@ -246,7 +246,7 @@ int fork(void) {
 
   //MMAP_AREA와 그에 따른 PHYTABLE 할당.
   struct mmap_area* mmap_pt;
-  struct mmap_area* mmap_cur;
+  struct mmap_area* mmap_cur = 0;
   for(int i=0; i<64; i++) {
     mmap_pt = &mmap_area_array[i];
     if(mmap_pt->p == np->parent) {
@@ -255,15 +255,12 @@ int fork(void) {
         mmap_cur = &mmap_area_array[j];
         if(mmap_cur->addr < MMAPBASE) break;
       }
-    }
-    if(!mmap_cur) continue;
-
-    *mmap_cur = *mmap_pt;
-    mmap_cur->p = np;
-
-    int p_cnt = mmap_cur->length/PGSIZE;
-    for(int j=0; j<p_cnt; j++) {
-      
+      *mmap_cur = *mmap_pt;
+      mmap_cur->p = np;
+      int p_cnt = mmap_cur->length/PGSIZE;
+      for(int j=0; j<p_cnt; j++) {
+        
+      }
     }
   }
   return pid;
