@@ -30,7 +30,7 @@ int main() {
     int fd2 = open("README",O_RDWR);
     char* temp3 = (char*)mmap(8192,4096,PROT_READ|PROT_WRITE,0,fd2,0); //this will occur pagefault.
     if(temp3 == 0) exit();
-    char s0 = temp[0],s10 = temp[10];
+    s0 = temp[0],s10 = temp[10];
     printf(1,"%s\n",temp);
     temp[0] = s0,temp[10] = s10;
     printf(1,"Free Page : %d!\n",freemem());
