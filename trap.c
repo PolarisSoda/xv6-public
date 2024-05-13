@@ -12,6 +12,7 @@
 struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
+struct spinlock templock;
 uint ticks;
 
 void
@@ -77,7 +78,7 @@ void trap(struct trapframe *tf) {
     break;
   case T_PGFLT:
     cprintf("PGFAULT OCCUR\n");
-    
+    /*
     uint addr = rcr2();
 		uint pages = PGROUNDDOWN(addr);
     cprintf("!%d!",pages);
@@ -87,9 +88,12 @@ void trap(struct trapframe *tf) {
 		mappages(myproc()->pgdir,(char*)pages,PGSIZE,V2P(phy_addr),PTE_W|PTE_U);
     cprintf("PAFAULT RESOLVED\n");
 		break;
-    
+    */
+    acquire(&templock);
     if(page_fault_handler(rcr2(),tf->err&2) == -1) cprintf("ERROR?"), exit();
     cprintf("PAFAULT RESOLVED\n");
+    release(&templock);
+    
     break;
 
   //PAGEBREAK: 13
