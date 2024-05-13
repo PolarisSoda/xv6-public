@@ -771,8 +771,6 @@ int page_fault_handler(uint addr,int prot) {
 
       pte_t* addr = walkpgdir(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE),0);
       cprintf("%x\n",&addr);
-      addr = walkpgdir(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE+PGSIZE),0);
-      cprintf("%x\n",&addr);
 
       if(mmap_cur->f) fileread(mmap_cur->f,phy_addr,PGSIZE);
       if(mappages(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto KFF;
