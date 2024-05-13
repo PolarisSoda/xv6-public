@@ -11,16 +11,11 @@
 #include "proc.h"
 #include "syscall.h"
 
-//1억번 = 1초였던가.
-//약 15초동안 cpu를 혹사시킵니다.
-void starvation() {
-    for(int i=0; i<1500000000; i++) asm("");
-}
 
 int main() {
     int fd = open("README",O_RDWR);
+    printf(1,"%d!",freemem());
     uint temp = mmap(0,4096,PROT_READ|PROT_WRITE,MAP_POPULATE,fd,0);
-    
-    cprintf("%c",&temp);
+    printf(1,"%d",freemem());
     exit();
 }
