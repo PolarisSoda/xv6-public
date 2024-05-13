@@ -746,6 +746,7 @@ int freemem() {
 }
 
 int page_fault_handler(uint addr,int prot) {
+  //1073750016
   struct proc *p = myproc();
   struct mmap_area *mmap_cur = 0;
   for(int i=0; i<64; i++) {
