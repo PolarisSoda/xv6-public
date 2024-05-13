@@ -16,7 +16,7 @@ int main() {
     printf(1,"Free Page : %d!\n",freemem());
     int fd = open("SOMETHING",O_RDWR);
     char* temp = (char*)mmap(0,4096,PROT_READ|PROT_WRITE,MAP_POPULATE,fd,0);
-    printf(1,"%c\n",temp[0]);
+    printf(1,"%s\n",temp[0]);
     temp[0] = '1';
     temp[10] = 0;
     printf(1,"%s\n",temp);
