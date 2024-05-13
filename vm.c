@@ -61,7 +61,7 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
 
   a = (char*)PGROUNDDOWN((uint)va);
   last = (char*)PGROUNDDOWN(((uint)va) + size - 1);
-  //cprintf("%d %d\n",a,last);
+  cprintf("%x %x\n",a,last);
   for(;;){
     if((pte = walkpgdir(pgdir, a, 1)) == 0)
       return -1;
