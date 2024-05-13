@@ -768,7 +768,7 @@ int page_fault_handler(uint addr,int prot) {
       char *phy_addr = kalloc();
       if(phy_addr == 0) goto KFF;
       memset(phy_addr,0,PGSIZE);
-
+      cprintf("%d\n",mmap_cur->addr+i*PGSIZE);
       pte_t* addr = walkpgdir(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE),0);
       cprintf("%x\n",&addr);
       addr = walkpgdir(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE+PGSIZE),0);
