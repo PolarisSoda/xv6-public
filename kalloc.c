@@ -90,10 +90,9 @@ kalloc(void)
     acquire(&kmem.lock);
   r = kmem.freelist;
   if(r)
-    kmem.freelist = r->next;
+    kmem.freelist = r->next, ff_cnt--;
   if(kmem.use_lock)
     release(&kmem.lock);
   return (char*)r;
-  ff_cnt--;
 }
 
