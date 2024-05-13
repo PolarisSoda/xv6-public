@@ -27,12 +27,14 @@ int main() {
     if(temp2 == 0) printf(1,"FAILED SOMETHING....\n"),exit();
     printf(1,"Free Page : %d!\n",freemem());
 
-    char* temp3 = (char*)mmap(8192,4096,PROT_READ|PROT_WRITE,0,fd,1); //this will occur pagefault.
-    if(temp3 == 0) exit();
-    printf(1,"Free Page : %d!\n",freemem());
+    //char* temp3 = (char*)mmap(8192,4096,PROT_READ|PROT_WRITE,0,fd,0); //this will occur pagefault.
+    //if(temp3 == 0) exit();
+    //printf(1,"Free Page : %d!\n",freemem());
 
     //char* temp4 = (char*)mmap(12288,4096,PROT_READ|PROT_WRITE,MAP_POPULATE|MAP_ANONYMOUS,-1,0); //this will occur pagefault.
     //if(temp4 == 0) exit();
     //printf(1,"Free Page : %d!\n",freemem());
-
+    munmap(temp),munmap(temp2);
+    printf(1,"Free Page : %d!\n",freemem());
+    exit();
 }
