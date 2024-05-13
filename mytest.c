@@ -33,6 +33,7 @@ int main() {
     printf(1,"%c\n",temp3[0]);
     s0 = temp3[0],s10 = temp3[10];
     temp3[0] = '1',temp3[10] = 0;
+    printf(1,"%s\n",temp3);
     temp3[0] = s0,temp3[10] = s10;
     printf(1,"Free Page : %d!\n",freemem());
 
