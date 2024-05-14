@@ -767,6 +767,7 @@ char* get_new_page(uint addr,int prot,int* PW) {
   if(phy_addr == 0) return 0; 
   memset(phy_addr,0,PGSIZE);
   if(mmap_cur->f) fileread(mmap_cur->f,phy_addr,PGSIZE);
+  *PW = mmap_cur->flags&PROT_WRITE;
   return phy_addr;
 }
 
