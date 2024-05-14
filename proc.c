@@ -652,7 +652,7 @@ uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
   int PW = (flags&PROT_WRITE); //is it writable?
   char *tmp_memory[1<<15]; //when mappng pages and alloc, there's will error. then we have to empty mappage and physical memory.
   int t_cnt = 0; //tmp_memory index
-  
+
   /* Determining whether condition is apporpriate*/
   if(addr%PGSIZE || length%PGSIZE) return 0; //addr is always page-aligned, length is also a multiple of page size
   if((flags&MAP_ANONYMOUS)!=MAP_ANONYMOUS && fd == -1) return 0; //It's not anonymous, but when the fd is -1.
@@ -766,26 +766,8 @@ char* get_new_page(uint addr,int prot,int* PW) {
   char* phy_addr = kalloc();
   if(phy_addr == 0) return 0; 
   memset(phy_addr,0,PGSIZE);
-  if(mmap_cur->f && )
-
-  int p_cnt = mmap_cur->length/PGSIZE;
-  
-  for(int i=0; i<p_cnt; i++) {
-    uint left = mmap_cur->addr + i*PGSIZE, right = left + PGSIZE;
-    if(left<=addr && addr<right) {
-      //fault occured at this page.
-      char *phy_addr = kalloc();
-      if(phy_addr == 0) goto KFF;
-      memset(phy_addr,0,PGSIZE);
-      if(mmap_cur->f) fileread(mmap_cur->f,phy_addr,PGSIZE);
-      return phy_addr;
-
-      KFF:
-      kfree(phy_addr);
-      return 0;
-    }
-  }
-  return 0;
+  if(mmap_cur->f) filread(mmap_cur->f,phy_addr,PGSIZE);
+  return phy_addr;
 }
 
 int page_fault_handler(uint addr,int prot) {
