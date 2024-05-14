@@ -30,10 +30,8 @@ int main() {
     printf(1,"Free Page : %d!\n",freemem());
     
     int fd2 = open("README",O_RDWR);
-    char* temp3 = (char*)mmap(8192,4096,PROT_READ|PROT_WRITE,0,fd2,5); //this will occur pagefault.
+    char* temp3 = (char*)mmap(8192,4096,PROT_READ|PROT_WRITE,0,fd2,4); //this will occur pagefault.
     if(temp3 == 0) exit();
-    printf(1,"%c\n",temp3[0]);
-    printf(1,"%c\n",temp3[0]);
     printf(1,"%c\n",temp3[0]);
     s0 = temp3[0],s10 = temp3[10];
     temp3[0] = '1',temp3[10] = 0;
@@ -47,7 +45,7 @@ int main() {
 
     int pid = fork();
     if(pid) {
-        printf("CHILD : %d",freemem());
+        printf(1,"CHILD : %d",freemem());
         printf(1,"%d ",munmap((uint)temp));
         printf(1,"%d ",munmap((uint)temp2));
         printf(1,"%d ",munmap((uint)temp3));
@@ -55,7 +53,7 @@ int main() {
         printf(1,"%d",freemem());
     } else {
         wait();
-        printf("PARENT : %d",freemem());
+        printf(1,"PARENT : %d",freemem());
         printf(1,"%d ",munmap((uint)temp));
         printf(1,"%d ",munmap((uint)temp2));
         printf(1,"%d ",munmap((uint)temp3));
