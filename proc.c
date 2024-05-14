@@ -265,7 +265,7 @@ int fork(void) {
       mmap_cur->p = np;  //end of the mmap_cur allocating.
 
       int p_cnt = mmap_cur->length/PGSIZE;
-      uint t_off;
+      uint t_off = 0;
       int PW = mmap_cur->prot&PROT_WRITE;
       if(mmap_cur->f) t_off = mmap_cur->f->off, mmap_cur->f->off = mmap_cur->offset;
 
@@ -742,7 +742,7 @@ uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
 
 int munmap(uint addr) {
   if(addr%PGSIZE) return 0;
-  
+
   struct proc *p = myproc(); //now process
   struct mmap_area *mmap_cur = 0;
 
