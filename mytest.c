@@ -45,10 +45,22 @@ int main() {
     if(temp4 == 0) exit();
     printf(1,"Free Page : %d!\n",freemem());
 
-    printf(1,"%d ",munmap((uint)temp));
-    printf(1,"%d ",munmap((uint)temp2));
-    printf(1,"%d ",munmap((uint)temp3));
-    printf(1,"%d \n",munmap((uint)temp4));
-    printf(1,"%d",freemem());
+    int pid = fork();
+    if(pid) {
+        printf("CHILD : %d",freemem());
+        printf(1,"%d ",munmap((uint)temp));
+        printf(1,"%d ",munmap((uint)temp2));
+        printf(1,"%d ",munmap((uint)temp3));
+        printf(1,"%d \n",munmap((uint)temp4));
+        printf(1,"%d",freemem());
+    } else {
+        wait();
+        printf("PARENT : %d",freemem());
+        printf(1,"%d ",munmap((uint)temp));
+        printf(1,"%d ",munmap((uint)temp2));
+        printf(1,"%d ",munmap((uint)temp3));
+        printf(1,"%d \n",munmap((uint)temp4));
+        printf(1,"%d",freemem());
+    }
     exit();
 }
