@@ -748,6 +748,7 @@ int freemem() {
 int page_fault_handler(uint addr,int prot) {
   cprintf("!%d!",PGROUNDDOWN(addr));
   struct proc *p = myproc();
+  cprintf("%p",p);
   struct mmap_area *mmap_cur = 0;
   for(int i=0; i<64; i++) {
     mmap_cur = &mmap_area_array[i];

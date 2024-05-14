@@ -12,7 +12,6 @@
 struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
-struct spinlock templock;
 uint ticks;
 
 void
@@ -89,9 +88,7 @@ void trap(struct trapframe *tf) {
     cprintf("PAFAULT RESOLVED\n");
 		break;
     */
-    acquire(&templock);
     int ret = page_fault_handler(rcr2(),tf->err&2);
-    release(&templock);
     if(ret == -1) exit();
     cprintf("PAFAULT RESOLVED\n");
     
