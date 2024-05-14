@@ -80,6 +80,7 @@ void trap(struct trapframe *tf) {
     int addr = rcr2();
     int PW;
     char* phy_addr = get_new_page(rcr2(),tf->err&2,&PW);
+    cprintf("%d %d\n",PW,PTE_W);
     int ret = mappages(myproc()->pgdir,(char*)(PGROUNDDOWN(addr)),PGSIZE,V2P(phy_addr),PW|PTE_U);
     if(ret == -1) cprintf("Error\n"),exit();
     cprintf("RESOLVED!\n");
