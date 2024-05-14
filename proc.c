@@ -649,23 +649,24 @@ uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
   struct file *f = fd == -1 ? 0 : filedup(p->ofile[fd]);
   uint sam = addr + MMAPBASE; //start address of memory
   int p_cnt = length/PGSIZE; //count of page
-  int PW = (flags&PROT_WRITE); //is it writable?
+  int PW = (prot&PROT_WRITE); //is it writable?
   char *tmp_memory[1<<15]; //when mappng pages and alloc, there's will error. then we have to empty mappage and physical memory.
   int t_cnt = 0; //tmp_memory index
 
   /* Determining whether condition is apporpriate*/
   if(addr%PGSIZE || length%PGSIZE) return 0; //addr is always page-aligned, length is also a multiple of page size
-  if((flags&MAP_ANONYMOUS)!=MAP_ANONYMOUS && fd == -1) return 0; //It's not anonymous, but when the fd is -1.
-  if(f && ((prot&PROT_READ) == PROT_READ && f->readable == 0)) return 0; //when have file, check read permission same
-  if(f && ((prot&PROT_WRITE) == PROT_WRITE && f->writable == 0)) return 0; //when have file, check write permission same
-  if(!f && offset != 0) return 0; //offset is given for only fd. if fd is not given, it should be 0.
+  if((flags&MAP_ANONYMOUS) && fd != -1) return 0; //It's anonymous, but fd is not -1.
+  if(!(flags&MAP_ANONYMOUS) && fd == -1) return 0; //It's not anonymous, but fd is -1.
+  if(f && ((prot&PROT_READ) && f->readable == 0)) return 0; //when have file, check read permission.
+  if(f && ((prot&PROT_WRITE) && f->writable == 0)) return 0; //when have file, check write permission.
+  if(fd == -1 && offset != 0) return 0; //offset is given for only fd. if fd is not given, it should be 0.
 
   /* Real Code that Execute mmap*/
   for(int i=0; i<64; i++) if(mmap_area_array[i].addr < MMAPBASE) {mmap_cur = &mmap_area_array[i]; goto found;}
   return 0; //there's no empty space in mmap_area_array
 
   found:
-  mmap_cur->f = fd == -1 ? 0 : p->ofile[fd];
+  mmap_cur->f = f;
   mmap_cur->addr = sam;
   mmap_cur->length = length;
   mmap_cur->offset = offset;
@@ -686,7 +687,7 @@ uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
       if(phy_addr == 0) goto DIE_IN; //physical address를 구할수 없었습니다. //이전거 다 밀어야 함.
       memset(phy_addr,0,PGSIZE); //생각해보니 항상 다읽어온다는 보장이 없으니 싹싹밀게요. 원하지 않는 게 나올 수도 있어서.
       fileread(f,phy_addr,PGSIZE);
-      if(mappages(p->pgdir,(void*)(sam + PGSIZE*t_cnt),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto EL_FAIL; //이미 할당되서 이번걸 밀어야 함.
+      if(mappages(p->pgdir,(void*)(sam + PGSIZE*t_cnt),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto EL_FAIL;
     }
     f->off = t_off;
     return sam;
@@ -745,35 +746,10 @@ int freemem() {
   return ff_cnt;
 }
 
-char* get_new_page(uint addr,int prot,int* PW) {
-  //fault handler is not working well. so i changed some concepts.
-  //alloc page with mmap_area's policy.
-
-  struct proc *p = myproc();
-  struct mmap_area *mmap_cur = 0;
-  for(int i=0; i<64; i++) {
-    mmap_cur = &mmap_area_array[i];
-    uint left = mmap_cur->addr, right = left + mmap_cur->length;
-    if(left<=addr && addr<right && mmap_cur->p == p) goto found; //addr의 주소를 포함하는 mmap_area를 가져오기.
-  }
-  return 0; //there's no corresponding mmap_area...possible?
-
-  found:
-  /*restraints*/
-  if(prot && !(mmap_cur->prot&PROT_WRITE)) return 0;
-
-  /*code below*/
-  char* phy_addr = kalloc();
-  if(phy_addr == 0) return 0; 
-  memset(phy_addr,0,PGSIZE);
-  if(mmap_cur->f) fileread(mmap_cur->f,phy_addr,PGSIZE);
-  *PW = mmap_cur->flags&PROT_WRITE;
-  return phy_addr;
-}
-
 int page_fault_handler(uint addr,int prot) {
   struct proc *p = myproc();
   struct mmap_area *mmap_cur = 0;
+
   for(int i=0; i<64; i++) {
     mmap_cur = &mmap_area_array[i];
     uint left = mmap_cur->addr, right = left + mmap_cur->length;
@@ -784,25 +760,21 @@ int page_fault_handler(uint addr,int prot) {
   found:
   if(prot && !(mmap_cur->prot&PROT_WRITE)) return -1; //If fault was write while mmap_area is write prohibited
   
-  cprintf("flags: %d\n",mmap_cur->flags);
-  //int PW = mmap_cur->flags&PROT_WRITE;
-  int p_cnt = mmap_cur->length/PGSIZE;
-  for(int i=0; i<p_cnt; i++) {
-    uint left = mmap_cur->addr + i*PGSIZE, right = left + PGSIZE;
-    if(left<=addr && addr<right) {
-      //fault occured at this page.
-      char *phy_addr = kalloc();
-      if(phy_addr == 0) goto KFF;
-      memset(phy_addr,0,PGSIZE);
-
-      if(mmap_cur->f) fileread(mmap_cur->f,phy_addr,PGSIZE);
-      if(mappages(p->pgdir,(void*)(PGROUNDDOWN(addr)),PGSIZE,V2P(phy_addr),PTE_W|PTE_U) == -1) goto KFF;
-      return 1;
-
-      KFF:
-      kfree(phy_addr);
-      return -1;
-    }
+  int PW = mmap_cur->prot&PROT_WRITE;
+  char* phy_addr = kalloc();
+  if(phy_addr == 0) return -1;
+  memset(phy_addr,0,PGSIZE);
+  if(mmap_cur->f) {
+    int t_off = mmap_cur->f->off;
+    mmap_cur->f->off = mmap_cur->offset;
+    filread(mmap_cur->f,phy_addr,PGSIZE);
+    mmap_cur->f->off = t_off;
   }
-  return -1; //no page!
+  int t_off = mmap_cur->offset;
+  if(mmap_cur->f) fileread(mmap_cur->f,phy_addr,PGSIZE);
+  if(mappages(p->pgdir,(void*)(PGROUNDDOWN(addr)),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto KFF;
+
+  KFF:
+  kfree(phy_addr);
+  return -1;
 }
