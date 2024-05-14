@@ -127,6 +127,7 @@ uint            mmap(uint,int,int,int,int,int);
 int             munmap(uint);
 int             freemem();
 int             page_fault_handler(uint,int);
+char*           get_new_page(uint,int);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
