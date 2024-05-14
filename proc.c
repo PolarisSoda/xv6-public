@@ -785,7 +785,7 @@ int page_fault_handler(uint addr,int prot) {
   if(prot && !(mmap_cur->prot&PROT_WRITE)) return -1; //If fault was write while mmap_area is write prohibited
   
   cprintf("flags: %d\n",mmap_cur->flags);
-  int PW = mmap_cur->flags&PROT_WRITE;
+  //int PW = mmap_cur->flags&PROT_WRITE;
   int p_cnt = mmap_cur->length/PGSIZE;
   for(int i=0; i<p_cnt; i++) {
     uint left = mmap_cur->addr + i*PGSIZE, right = left + PGSIZE;
