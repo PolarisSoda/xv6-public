@@ -769,9 +769,10 @@ int page_fault_handler(uint addr,int prot) {
     fileread(mmap_cur->f,phy_addr,PGSIZE);
     mmap_cur->f->off = t_off;
   }
-  cprintf("HERE?");
-  if(mappages(p->pgdir,(void*)(PGROUNDDOWN(addr)),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto KFF;
 
+  if(mappages(p->pgdir,(void*)(PGROUNDDOWN(addr)),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto KFF;
+  return 1;
+  
   KFF:
   kfree(phy_addr);
   return -1;
