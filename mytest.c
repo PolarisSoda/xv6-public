@@ -45,15 +45,16 @@ int main() {
 
     int pid = fork();
     if(pid) {
-        printf(1,"CHILD : %d",freemem());
+        printf(1,"CHILD : %d\n",freemem());
         printf(1,"%d ",munmap((uint)temp));
         printf(1,"%d ",munmap((uint)temp2));
         printf(1,"%d ",munmap((uint)temp3));
         printf(1,"%d \n",munmap((uint)temp4));
         printf(1,"%d",freemem());
+        exit();
     } else {
         wait();
-        printf(1,"PARENT : %d",freemem());
+        printf(1,"PARENT : %d\n",freemem());
         printf(1,"%d ",munmap((uint)temp));
         printf(1,"%d ",munmap((uint)temp2));
         printf(1,"%d ",munmap((uint)temp3));
