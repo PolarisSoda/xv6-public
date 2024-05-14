@@ -76,11 +76,9 @@ void trap(struct trapframe *tf) {
     lapiceoi();
     break;
   case T_PGFLT:
-    cprintf("PGFAULT OCCUR\n");
-    int ret = page_fault_handler(rcr2(),tf->err&2);
-    if(ret == -1) exit();
-    cprintf("PAFAULT RESOLVED\n");
-    
+    //cprintf("PGFAULT OCCUR\n");
+    if(page_fault_handler(rcr2(),tf->err&2) == -1) exit();
+    //cprintf("PAFAULT RESOLVED\n");
     break;
 
   //PAGEBREAK: 13
