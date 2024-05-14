@@ -758,8 +758,9 @@ int page_fault_handler(uint addr,int prot) {
   return -1; //there's no corresponding mmap_area...possible?
 
   found:
+  cprintf("HI");
   if(prot && !(mmap_cur->prot&PROT_WRITE)) return -1; //If fault was write while mmap_area is write prohibited
-  
+  cprintf("HELLO");
   int PW = mmap_cur->prot&PROT_WRITE;
   char* phy_addr = kalloc();
   if(phy_addr == 0) return -1;
