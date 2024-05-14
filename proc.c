@@ -766,7 +766,7 @@ char* get_new_page(uint addr,int prot,int* PW) {
   char* phy_addr = kalloc();
   if(phy_addr == 0) return 0; 
   memset(phy_addr,0,PGSIZE);
-  if(mmap_cur->f) filread(mmap_cur->f,phy_addr,PGSIZE);
+  if(mmap_cur->f) fileread(mmap_cur->f,phy_addr,PGSIZE);
   return phy_addr;
 }
 
