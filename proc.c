@@ -746,13 +746,12 @@ int freemem() {
 }
 
 int page_fault_handler(uint addr,int prot) {
-  //1073750016
   struct proc *p = myproc();
   struct mmap_area *mmap_cur = 0;
   for(int i=0; i<64; i++) {
     mmap_cur = &mmap_area_array[i];
     uint left = mmap_cur->addr, right = left + mmap_cur->length;
-    if(addr>=left && addr<right) goto found; //addr의 주소를 포함하는 mmap_area를 가져오기.
+    if(left<=addr && addr<right && mmap_cur->p == p) goto found; //addr의 주소를 포함하는 mmap_area를 가져오기.
   }
   return -1; //there's no corresponding mmap_area...possible?
 
@@ -775,7 +774,13 @@ int page_fault_handler(uint addr,int prot) {
 
       if(mmap_cur->f) fileread(mmap_cur->f,phy_addr,PGSIZE);
       if(mappages(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto KFF;
-      
+      uint addr = rcr2();
+      uint pages = PGROUNDDOWN(addr);
+      cprintf("!%d!",pages);
+      char* phy_addr = kalloc();
+      if(phy_addr == 0) kfree(phy_addr),exit();
+      memset(phy_addr,0,PGSIZE);
+      mappages(myproc()->pgdir,(char*)pages,PGSIZE,V2P(phy_addr),PTE_W|PTE_U);
       return 1;
 
       KFF:
