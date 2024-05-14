@@ -45,10 +45,10 @@ int main() {
     if(temp4 == 0) exit();
     printf(1,"Free Page : %d!\n",freemem());
 
-    munmap(temp);
-    munmap(temp2);
-    munmap(temp3);
-    munmap(temp4);
+    printf(1,"%d ",munmap((uint)temp));
+    printf(1,"%d ",munmap((uint)temp));
+    printf(1,"%d ",munmap((uint)temp));
+    printf(1,"%d \n",munmap((uint)temp));
     printf(1,"%d",freemem());
     exit();
 }
