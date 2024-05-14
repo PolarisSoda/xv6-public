@@ -764,23 +764,19 @@ int page_fault_handler(uint addr,int prot) {
     uint left = mmap_cur->addr + i*PGSIZE, right = left + PGSIZE;
     if(left<=addr && addr<right) {
       //fault occured at this page.
-      cprintf("%d %d\n",PGROUNDDOWN(addr),mmap_cur->addr+i*PGSIZE);
       char *phy_addr = kalloc();
       if(phy_addr == 0) goto KFF;
       memset(phy_addr,0,PGSIZE);
 
-      pte_t* addr = walkpgdir(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE),0);
-      cprintf("%x\n",&addr);
-
       if(mmap_cur->f) fileread(mmap_cur->f,phy_addr,PGSIZE);
       if(mappages(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto KFF;
-      uint addr = rcr2();
+      /*      uint addr = rcr2();
       uint pages = PGROUNDDOWN(addr);
       cprintf("!%d!",pages);
       char* phy_addr = kalloc();
       if(phy_addr == 0) kfree(phy_addr),exit();
       memset(phy_addr,0,PGSIZE);
-      mappages(myproc()->pgdir,(char*)pages,PGSIZE,V2P(phy_addr),PTE_W|PTE_U);
+      mappages(myproc()->pgdir,(char*)pages,PGSIZE,V2P(phy_addr),PTE_W|PTE_U); */
       return 1;
 
       KFF:
