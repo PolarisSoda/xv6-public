@@ -784,6 +784,7 @@ int page_fault_handler(uint addr,int prot) {
   found:
   if(prot && !(mmap_cur->prot&PROT_WRITE)) return -1; //If fault was write while mmap_area is write prohibited
   
+  cprintf("flags: %d\n",mmap_cur->flags);
   int PW = mmap_cur->flags&PROT_WRITE;
   int p_cnt = mmap_cur->length/PGSIZE;
   for(int i=0; i<p_cnt; i++) {
@@ -795,7 +796,7 @@ int page_fault_handler(uint addr,int prot) {
       memset(phy_addr,0,PGSIZE);
 
       if(mmap_cur->f) fileread(mmap_cur->f,phy_addr,PGSIZE);
-      if(mappages(p->pgdir,(void*)(PGROUNDDOWN(addr)),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto KFF;
+      if(mappages(p->pgdir,(void*)(PGROUNDDOWN(addr)),PGSIZE,V2P(phy_addr),PTE_W|PTE_U) == -1) goto KFF;
       return 1;
 
       KFF:

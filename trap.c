@@ -77,26 +77,7 @@ void trap(struct trapframe *tf) {
     break;
   case T_PGFLT:
     cprintf("PGFAULT OCCUR\n");
-    int addr = rcr2();
-    int PW;
-    char* phy_addr = get_new_page(rcr2(),tf->err&2,&PW);
-    cprintf("%d %d\n",PW,PTE_W);
-    int ret = mappages(myproc()->pgdir,(char*)(PGROUNDDOWN(addr)),PGSIZE,V2P(phy_addr),PW|PTE_U);
-    if(ret == -1) cprintf("Error\n"),exit();
-    cprintf("RESOLVED!\n");
-    break;
-    /*
-    uint addr = rcr2();
-		uint pages = PGROUNDDOWN(addr);
-    cprintf("!%d!",pages);
-		char* phy_addr = kalloc();
-		if(phy_addr == 0) kfree(phy_addr),exit();
-		memset(phy_addr,0,PGSIZE);
-		mappages(myproc()->pgdir,(char*)pages,PGSIZE,V2P(phy_addr),PTE_W|PTE_U);
-    cprintf("PAFAULT RESOLVED\n");
-		break;
-    */
-    ret = page_fault_handler(rcr2(),tf->err&2);
+    int ret = page_fault_handler(rcr2(),tf->err&2);
     if(ret == -1) exit();
     cprintf("PAFAULT RESOLVED\n");
     
