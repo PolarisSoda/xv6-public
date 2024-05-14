@@ -18,7 +18,7 @@ int main() {
     printf(1,"Frist Page : %d!\n",freemem());
     int fd = open("README",O_RDWR);
     if(fd == -1) exit();
-    char* temp = (char*)mmap(0,4096,PROT_READ|PROT_WRITE,MAP_POPULATE,fd,0);
+    char* temp = (char*)mmap(0,4096,PROT_READ|PROT_WRITE,MAP_POPULATE,fd,1);
     char s0 = temp[0],s10 = temp[10];
     temp[0] = '1',temp[10] = 0;
     printf(1,"%s\n",temp);
@@ -30,7 +30,7 @@ int main() {
     printf(1,"Free Page : %d!\n",freemem());
     
     int fd2 = open("README",O_RDWR);
-    char* temp3 = (char*)mmap(8192,4096,PROT_READ|PROT_WRITE,0,fd2,1); //this will occur pagefault.
+    char* temp3 = (char*)mmap(8192,4096,PROT_READ|PROT_WRITE,0,fd2,5); //this will occur pagefault.
     if(temp3 == 0) exit();
     printf(1,"%c\n",temp3[0]);
     printf(1,"%c\n",temp3[0]);
