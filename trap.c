@@ -77,10 +77,10 @@ void trap(struct trapframe *tf) {
     break;
   case T_PGFLT:
     cprintf("PGFAULT OCCUR\n");
-    int WP = 0,addr = rcr2();
-    char* phy_addr = get_new_page(addr,tf->err&2,&WP);
-    if(phy_addr == 0) exit();
-    int ret = mappages(myproc()->pgdir,(char*)(PGROUNDDOWN(addr)),PGSIZE,V2P(phy_addr),WP|PTE_U);
+    int addr = rcr2();
+    int PW;
+    char* phy_addr = get_new_page(rcr2(),tf->err&2,&PW);
+    int ret = mappages(myproc()->pgdir,(char*)(PGROUNDDOWN(addr)),PGSIZE,V2P(phy_addr),PTE_W|PTE_U);
     if(ret == -1) cprintf("Error\n"),exit();
     cprintf("RESOLVED!\n");
     break;
