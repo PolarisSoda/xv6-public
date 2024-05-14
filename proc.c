@@ -780,6 +780,7 @@ int page_fault_handler(uint addr,int prot) {
       return 1;
 
       KFF:
+      cprintf("????");
       kfree(phy_addr);
       return -1;
     }
