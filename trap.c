@@ -94,7 +94,7 @@ void trap(struct trapframe *tf) {
     cprintf("PAFAULT RESOLVED\n");
 		break;
     */
-    int ret = page_fault_handler(rcr2(),tf->err&2);
+    ret = page_fault_handler(rcr2(),tf->err&2);
     if(ret == -1) exit();
     cprintf("PAFAULT RESOLVED\n");
     
