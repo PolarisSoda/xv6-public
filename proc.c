@@ -745,10 +745,40 @@ int freemem() {
   return ff_cnt;
 }
 
-int page_fault_handler(uint addr,int prot) {
-  cprintf("!%d!",PGROUNDDOWN(addr));
+char* get_new_page(uint addr,int prot) {
   struct proc *p = myproc();
-  cprintf("%p",p);
+  struct mmap_area *mmap_cur = 0;
+  for(int i=0; i<64; i++) {
+    mmap_cur = &mmap_area_array[i];
+    uint left = mmap_cur->addr, right = left + mmap_cur->length;
+    if(left<=addr && addr<right && mmap_cur->p == p) goto found; //addr의 주소를 포함하는 mmap_area를 가져오기.
+  }
+  return 0;; //there's no corresponding mmap_area...possible?
+
+  found:
+  if(prot && !(mmap_cur->prot&PROT_WRITE)) return 0;
+  
+  int p_cnt = mmap_cur->length/PGSIZE;
+  for(int i=0; i<p_cnt; i++) {
+    uint left = mmap_cur->addr + i*PGSIZE, right = left + PGSIZE;
+    if(left<=addr && addr<right) {
+      //fault occured at this page.
+      char *phy_addr = kalloc();
+      if(phy_addr == 0) goto KFF;
+      memset(phy_addr,0,PGSIZE);
+      if(mmap_cur->f) fileread(mmap_cur->f,phy_addr,PGSIZE);
+      return phy_addr;
+
+      KFF:
+      kfree(phy_addr);
+      return 0;
+    }
+  }
+  return 0;
+}
+
+int page_fault_handler(uint addr,int prot) {
+  struct proc *p = myproc();
   struct mmap_area *mmap_cur = 0;
   for(int i=0; i<64; i++) {
     mmap_cur = &mmap_area_array[i];
@@ -772,17 +802,9 @@ int page_fault_handler(uint addr,int prot) {
 
       if(mmap_cur->f) fileread(mmap_cur->f,phy_addr,PGSIZE);
       if(mappages(p->pgdir,(void*)(PGROUNDDOWN(addr)),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto KFF;
-      /*      uint addr = rcr2();
-      uint pages = PGROUNDDOWN(addr);
-      cprintf("!%d!",pages);
-      char* phy_addr = kalloc();
-      if(phy_addr == 0) kfree(phy_addr),exit();
-      memset(phy_addr,0,PGSIZE);
-      mappages(myproc()->pgdir,(char*)pages,PGSIZE,V2P(phy_addr),PTE_W|PTE_U); */
       return 1;
 
       KFF:
-      cprintf("????");
       kfree(phy_addr);
       return -1;
     }
