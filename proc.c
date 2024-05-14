@@ -764,15 +764,15 @@ int page_fault_handler(uint addr,int prot) {
   if(phy_addr == 0) return -1;
   memset(phy_addr,0,PGSIZE);
   if(mmap_cur->f) {
+    //we need to carefully think about the offsets.
     int t_off = mmap_cur->f->off;
     mmap_cur->f->off = mmap_cur->offset;
     fileread(mmap_cur->f,phy_addr,PGSIZE);
     mmap_cur->f->off = t_off;
   }
-
   if(mappages(p->pgdir,(void*)(PGROUNDDOWN(addr)),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto KFF;
   return 1;
-  
+
   KFF:
   kfree(phy_addr);
   return -1;
