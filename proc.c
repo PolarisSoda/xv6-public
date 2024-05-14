@@ -652,7 +652,7 @@ uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
   int PW = (flags&PROT_WRITE); //is it writable?
   char *tmp_memory[1<<15]; //when mappng pages and alloc, there's will error. then we have to empty mappage and physical memory.
   int t_cnt = 0; //tmp_memory index
-  cprintf("%x!\n",sam);
+  
   /* Determining whether condition is apporpriate*/
   if(addr%PGSIZE || length%PGSIZE) return 0; //addr is always page-aligned, length is also a multiple of page size
   if((flags&MAP_ANONYMOUS)!=MAP_ANONYMOUS && fd == -1) return 0; //It's not anonymous, but when the fd is -1.
@@ -745,7 +745,10 @@ int freemem() {
   return ff_cnt;
 }
 
-char* get_new_page(uint addr,int prot) {
+char* get_new_page(uint addr,int prot,int* PW) {
+  //fault handler is not working well. so i changed some concepts.
+  //alloc page with mmap_area's policy.
+
   struct proc *p = myproc();
   struct mmap_area *mmap_cur = 0;
   for(int i=0; i<64; i++) {
@@ -753,12 +756,20 @@ char* get_new_page(uint addr,int prot) {
     uint left = mmap_cur->addr, right = left + mmap_cur->length;
     if(left<=addr && addr<right && mmap_cur->p == p) goto found; //addr의 주소를 포함하는 mmap_area를 가져오기.
   }
-  return 0;; //there's no corresponding mmap_area...possible?
+  return 0; //there's no corresponding mmap_area...possible?
 
   found:
+  /*restraints*/
   if(prot && !(mmap_cur->prot&PROT_WRITE)) return 0;
-  
+
+  /*code below*/
+  char* phy_addr = kalloc();
+  if(phy_addr == 0) return 0; 
+  memset(phy_addr,0,PGSIZE);
+  if(mmap_cur->f && )
+
   int p_cnt = mmap_cur->length/PGSIZE;
+  
   for(int i=0; i<p_cnt; i++) {
     uint left = mmap_cur->addr + i*PGSIZE, right = left + PGSIZE;
     if(left<=addr && addr<right) {
