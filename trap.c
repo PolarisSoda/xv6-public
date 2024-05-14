@@ -92,6 +92,7 @@ void trap(struct trapframe *tf) {
     acquire(&templock);
     int ret = page_fault_handler(rcr2(),tf->err&2);
     release(&templock);
+    if(ret == -1) exit();
     cprintf("PAFAULT RESOLVED\n");
     
     break;
