@@ -767,7 +767,7 @@ int page_fault_handler(uint addr,int prot) {
   if(mmap_cur->f) {
     int t_off = mmap_cur->f->off;
     mmap_cur->f->off = mmap_cur->offset;
-    filread(mmap_cur->f,phy_addr,PGSIZE);
+    fileread(mmap_cur->f,phy_addr,PGSIZE);
     mmap_cur->f->off = t_off;
   }
   if(mappages(p->pgdir,(void*)(PGROUNDDOWN(addr)),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto KFF;
