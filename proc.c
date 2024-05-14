@@ -200,7 +200,6 @@ growproc(int n)
 // Caller must set state of returned proc to RUNNABLE.
 // fork was modified to inherit the runtime and values[PROJ2]
 int fork(void) {
-  cprintf("FORKED!!!!\n");
   int i, pid;
   struct proc *np;
   struct proc *curproc = myproc();
@@ -246,22 +245,44 @@ int fork(void) {
   release(&ptable.lock);
 
   //MMAP_AREA와 그에 따른 PHYTABLE 할당.
-  struct mmap_area* mmap_pt;
-  struct mmap_area* mmap_cur = 0;
+  //만약 부모 프로세스가 MMAP_AREA_ARRAY중 하나를 가진다면
+  //그것과 똑같이 복사한다.
+  //안에 들어있는 각 page를 확인하여
+  //page가 실제로 할당되어있다면 똑같이 할당을 해주는 것이 옳은 것일것이오.
+  struct mmap_area* mmap_pt; //mmap_area of parent process
+  struct mmap_area* mmap_cur = 0; //will be child's array
+
   for(int i=0; i<64; i++) {
     mmap_pt = &mmap_area_array[i];
-    if(mmap_pt->p == np->parent) {
-      mmap_cur = 0;
+    if(mmap_pt->p == curproc) {
+      mmap_cur = 0; //we have to find location.
       for(int j=0; j<64; j++) {
         mmap_cur = &mmap_area_array[j];
-        if(mmap_cur->addr < MMAPBASE) break;
+        if(mmap_cur->addr < MMAPBASE) break; //find empty. using area has array >= MMAPBASE
       }
+      if(mmap_cur == 0) return -1;
       *mmap_cur = *mmap_pt;
-      mmap_cur->p = np;
+      mmap_cur->p = np;  //end of the mmap_cur allocating.
+
       int p_cnt = mmap_cur->length/PGSIZE;
+      uint t_off;
+      int PW = mmap_cur->prot&PROT_WRITE;
+      if(mmap_cur->f) t_off = mmap_cur->f->off, mmap_cur->f->off = mmap_cur->offset;
+
       for(int j=0; j<p_cnt; j++) {
-        
+        uint VA = mmap_cur->addr + j*PGSIZE;
+        pte_t *PTE = walkpgdir(np->pgdir,(void*)VA,0); //This is page table entry.
+        if(PTE && (*PTE&PTE_P)) {
+          *PTE = 0;
+          char* phy_addr = kalloc();
+          if(kalloc() == 0) return -1;
+          memset(phy_addr,0,PGSIZE);
+          if(mmap_cur->f) fileread(mmap_cur->f,phy_addr,PGSIZE);
+          int ret = mappages(np->pgdir,(void*)VA,PGSIZE,V2P(phy_addr),PTE_W|PW);
+          if(ret == -1) return -1;
+        }
       }
+      if(mmap_cur->f) mmap_cur->f->off = t_off;
     }
   }
   return pid;
@@ -687,7 +708,7 @@ uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
       if(phy_addr == 0) goto DIE_IN; //physical address를 구할수 없었습니다. //이전거 다 밀어야 함.
       memset(phy_addr,0,PGSIZE); //생각해보니 항상 다읽어온다는 보장이 없으니 싹싹밀게요. 원하지 않는 게 나올 수도 있어서.
       fileread(f,phy_addr,PGSIZE);
-      if(mappages(p->pgdir,(void*)(sam + PGSIZE*t_cnt),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto EL_FAIL;
+      if(mappages(p->pgdir,(void*)(sam + PGSIZE*t_cnt),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) {f->off = t_off; goto EL_FAIL;}
     }
     f->off = t_off;
     return sam;
@@ -720,10 +741,12 @@ uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
 }
 
 int munmap(uint addr) {
+  if(addr%PGSIZE) return 0;
+  
   struct proc *p = myproc(); //now process
   struct mmap_area *mmap_cur = 0;
 
-  for(int i=0; i<64; i++) if(mmap_area_array[i].addr == addr) {mmap_cur = &mmap_area_array[i]; goto found;}
+  for(int i=0; i<64; i++) if(mmap_area_array[i].addr == addr && mmap_area_array[i].p == p) {mmap_cur = &mmap_area_array[i]; goto found;}
   return -1;
 
   found:
@@ -759,12 +782,12 @@ int page_fault_handler(uint addr,int prot) {
 
   found:
   if(prot && !(mmap_cur->prot&PROT_WRITE)) return -1; //If fault was write while mmap_area is write prohibited
+
   int PW = mmap_cur->prot&PROT_WRITE;
   char* phy_addr = kalloc();
   if(phy_addr == 0) return -1;
   memset(phy_addr,0,PGSIZE);
   if(mmap_cur->f) {
-    //we need to carefully think about the offsets.
     int t_off = mmap_cur->f->off;
     mmap_cur->f->off = mmap_cur->offset;
     fileread(mmap_cur->f,phy_addr,PGSIZE);
