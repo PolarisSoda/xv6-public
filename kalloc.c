@@ -9,7 +9,6 @@
 #include "mmu.h"
 #include "spinlock.h"
 
-int ff_cnt;
 void freerange(void *vstart, void *vend);
 extern char end[]; // first address after kernel loaded from ELF file
                    // defined by the kernel linker script in kernel.ld
@@ -23,6 +22,11 @@ struct {
   int use_lock;
   struct run *freelist;
 } kmem;
+
+struct page pages[PHYSTOP/PGSIZE];
+struct page *page_lru_head;
+int num_free_pages;
+int num_lru_pages;
 
 // Initialization happens in two phases.
 // 1. main() calls kinit1() while still using entrypgdir to place just
@@ -75,7 +79,6 @@ kfree(char *v)
   kmem.freelist = r;
   if(kmem.use_lock)
     release(&kmem.lock);
-  ff_cnt++;
 }
 
 // Allocate one 4096-byte page of physical memory.
@@ -86,11 +89,14 @@ kalloc(void)
 {
   struct run *r;
 
+//try_again:
   if(kmem.use_lock)
     acquire(&kmem.lock);
   r = kmem.freelist;
+//  if(!r && reclaim())
+//	  goto try_again;
   if(r)
-    kmem.freelist = r->next, ff_cnt--;
+    kmem.freelist = r->next;
   if(kmem.use_lock)
     release(&kmem.lock);
   return (char*)r;

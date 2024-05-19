@@ -52,6 +52,8 @@ struct inode*   nameiparent(char*, char*);
 int             readi(struct inode*, char*, uint, uint);
 void            stati(struct inode*, struct stat*);
 int             writei(struct inode*, char*, uint, uint);
+void swapread(char* ptr, int blkno);
+void swapwrite(char* ptr, int blkno);
 
 // ide.c
 void            ideinit(void);
@@ -120,13 +122,6 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
-int             getnice(int);
-int             setnice(int,int);
-void            ps(int);
-uint            mmap(uint,int,int,int,int,int);
-int             munmap(uint);
-int             freemem();
-int             page_fault_handler(uint,int);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
@@ -179,8 +174,6 @@ void            uartputc(int);
 
 // vm.c
 void            seginit(void);
-pte_t*          walkpgdir(pde_t *pgdir, const void *va, int alloc);
-int             mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm);
 void            kvmalloc(void);
 pde_t*          setupkvm(void);
 char*           uva2ka(pde_t*, char*);
@@ -194,7 +187,6 @@ void            switchuvm(struct proc*);
 void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
-
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

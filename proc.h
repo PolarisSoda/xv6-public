@@ -12,7 +12,6 @@ struct cpu {
 
 extern struct cpu cpus[NCPU];
 extern int ncpu;
-extern int weight[40]; //hard-coded weights;
 
 //PAGEBREAK: 17
 // Saved registers for kernel context switches.
@@ -50,23 +49,8 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  int nice; // ADDED NICE VALUE[PROJ1]
-
-  int v_runtime; //Select process with minimum virtual runtime from runnable processes[PROJ2]
-  int r_runtime; //real runtime that this time interval.[PROJ2]
-  int t_runtime; //total runtime[PROJ2]
-  int time_slice; //time_slice at that time[PROJ2]
 };
 
-struct mmap_area {
-  struct file *f; //file descriptor maybe...
-  uint addr; //address of virtual address
-  int length; //length that starts of virtual address
-  int offset; //offset in page
-  int prot; //protection
-  int flags; //flags that what it is.
-  struct proc *p; //address of possessing process
-};
 // Process memory is laid out contiguously, low addresses first:
 //   text
 //   original data and bss

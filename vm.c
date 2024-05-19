@@ -32,9 +32,12 @@ seginit(void)
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
-pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
+static pte_t *
+walkpgdir(pde_t *pgdir, const void *va, int alloc)
+{
   pde_t *pde;
   pte_t *pgtab;
+
   pde = &pgdir[PDX(va)];
   if(*pde & PTE_P){
     pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
@@ -54,7 +57,9 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
 // Create PTEs for virtual addresses starting at va that refer to
 // physical addresses starting at pa. va and size might not
 // be page-aligned.
-int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
+static int
+mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
+{
   char *a, *last;
   pte_t *pte;
 

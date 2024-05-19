@@ -6,9 +6,6 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
-#include "sleeplock.h"
-#include "fs.h"
-#include "file.h"
 
 struct {
   struct spinlock lock;
@@ -16,21 +13,8 @@ struct {
 } ptable;
 
 static struct proc *initproc;
-struct mmap_area mmap_area_array[64];
 
-extern int ff_cnt;
 int nextpid = 1;
-int weight[40] = {
-  88761, 71755, 56483, 46273, 36291,
-  29154, 23254, 18705, 14949, 11916,
-  9548 , 7620 , 6100 , 4904 , 3906 ,
-  3121 , 2501 , 1991 , 1586 , 1277 ,
-  1024 , 820  , 655  , 526  , 423  ,
-  335  , 272  , 215  , 172  , 137  ,
-  110  , 87   , 70   , 56   , 45   ,
-  36   , 29   , 23   , 18   , 15   ,
-}; //weight actually define[PROJ2]
-
 extern void forkret(void);
 extern void trapret(void);
 
@@ -86,9 +70,9 @@ myproc(void) {
 // If found, change state to EMBRYO and initialize
 // state required to run in the kernel.
 // Otherwise return 0.
-//allocproc was modified to init nice value[PROJ1]
-//allocproc was modified to init runtimes and time_slice[PROJ2]
-static struct proc* allocproc(void) {
+static struct proc*
+allocproc(void)
+{
   struct proc *p;
   char *sp;
 
@@ -104,11 +88,6 @@ static struct proc* allocproc(void) {
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
-  p->nice = 20; //priority values[PROJ1]
-  p->v_runtime = 0; //initializing runtime values[PROJ2]
-  p->r_runtime = 0;
-  p->t_runtime = 0;
-  p->time_slice = 0;
 
   release(&ptable.lock);
 
@@ -198,8 +177,9 @@ growproc(int n)
 // Create a new process copying p as the parent.
 // Sets up stack to return as if from system call.
 // Caller must set state of returned proc to RUNNABLE.
-// fork was modified to inherit the runtime and values[PROJ2]
-int fork(void) {
+int
+fork(void)
+{
   int i, pid;
   struct proc *np;
   struct proc *curproc = myproc();
@@ -210,18 +190,12 @@ int fork(void) {
   }
 
   // Copy process state from proc.
-  // TODO: t_runtime,v_runtime,nice inherit
   if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
     kfree(np->kstack);
     np->kstack = 0;
     np->state = UNUSED;
     return -1;
   }
-  np->nice = curproc->nice;
-  np->v_runtime = curproc->v_runtime;
-  np->t_runtime = curproc->t_runtime;
-  np->r_runtime = 0; 
-
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
@@ -244,47 +218,6 @@ int fork(void) {
 
   release(&ptable.lock);
 
-  //MMAP_AREA와 그에 따른 PHYTABLE 할당.
-  //만약 부모 프로세스가 MMAP_AREA_ARRAY중 하나를 가진다면
-  //그것과 똑같이 복사한다.
-  //안에 들어있는 각 page를 확인하여
-  //page가 실제로 할당되어있다면 똑같이 할당을 해주는 것이 옳은 것일것이오.
-  struct mmap_area* mmap_pt; //mmap_area of parent process
-  struct mmap_area* mmap_cur = 0; //will be child's array
-
-  for(int i=0; i<64; i++) {
-    mmap_pt = &mmap_area_array[i];
-    if(mmap_pt->p == curproc) {
-      mmap_cur = 0; //we have to find location.
-      for(int j=0; j<64; j++) {
-        mmap_cur = &mmap_area_array[j];
-        if(mmap_cur->addr < MMAPBASE) break; //find empty. using area has array >= MMAPBASE
-      }
-      if(mmap_cur == 0) return -1;
-      *mmap_cur = *mmap_pt;
-      mmap_cur->p = np;  //end of the mmap_cur allocating.
-
-      int p_cnt = mmap_cur->length/PGSIZE;
-      uint t_off = 0;
-      int PW = mmap_cur->prot&PROT_WRITE;
-      if(mmap_cur->f) t_off = mmap_cur->f->off, mmap_cur->f->off = mmap_cur->offset;
-
-      for(int j=0; j<p_cnt; j++) {
-        uint VA = mmap_cur->addr + j*PGSIZE;
-        pte_t *PTE = walkpgdir(np->pgdir,(void*)VA,0); //This is page table entry.
-        if(PTE && (*PTE&PTE_P)) {
-          *PTE = 0;
-          char* phy_addr = kalloc();
-          if(kalloc() == 0) return -1;
-          memset(phy_addr,0,PGSIZE);
-          if(mmap_cur->f) fileread(mmap_cur->f,phy_addr,PGSIZE);
-          int ret = mappages(np->pgdir,(void*)VA,PGSIZE,V2P(phy_addr),PTE_W|PW);
-          if(ret == -1) return -1;
-        }
-      }
-      if(mmap_cur->f) mmap_cur->f->off = t_off;
-    }
-  }
   return pid;
 }
 
@@ -386,7 +319,9 @@ wait(void)
 //  - swtch to start running that process
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
-void scheduler(void) {
+void
+scheduler(void)
+{
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
@@ -395,27 +330,28 @@ void scheduler(void) {
     // Enable interrupts on this processor.
     sti();
 
-    struct proc *minp = 0;
-    int min_vrt = 0x7FFFFFFF, t_weight = 0;
-    
+    // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p<&ptable.proc[NPROC]; p++) {
-      if(p->state != RUNNABLE) continue;
-      t_weight += weight[p->nice];
-      if(min_vrt > p->v_runtime) min_vrt = p->v_runtime, minp = p;
-    }
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->state != RUNNABLE)
+        continue;
 
-    if(minp) {
-      minp->time_slice = 10000*weight[minp->nice]/t_weight;
-      minp->r_runtime = 0;
-      c->proc = minp;
-      switchuvm(minp);
-      minp->state = RUNNING;
-      swtch(&(c->scheduler), minp->context);
+      // Switch to chosen process.  It is the process's job
+      // to release ptable.lock and then reacquire it
+      // before jumping back to us.
+      c->proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+
+      swtch(&(c->scheduler), p->context);
       switchkvm();
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
       c->proc = 0;
     }
-    release(&ptable.lock); //i think it's safer to locate here.
+    release(&ptable.lock);
+
   }
 }
 
@@ -446,7 +382,9 @@ sched(void)
 }
 
 // Give up the CPU for one scheduling round.
-void yield(void) {
+void
+yield(void)
+{
   acquire(&ptable.lock);  //DOC: yieldlock
   myproc()->state = RUNNABLE;
   sched();
@@ -516,29 +454,20 @@ sleep(void *chan, struct spinlock *lk)
 //PAGEBREAK!
 // Wake up all processes sleeping on chan.
 // The ptable lock must be held.
-// How about woken process?
-// we have to change some v_runtime.
-// if there's no process in RUNNABLE. v_runtime is 0 else calculate with formula.[PROJ2]
-static void wakeup1(void *chan) {
+static void
+wakeup1(void *chan)
+{
   struct proc *p;
-  int min_vrt = 0x7FFFFFFF;
-  int run_exist = 0;
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-    if(p->state != RUNNABLE) continue;
-    if(min_vrt > p->v_runtime) min_vrt = p->v_runtime, run_exist = 1;
-  }
-  
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-    if(p->state == SLEEPING && p->chan == chan) {
+
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    if(p->state == SLEEPING && p->chan == chan)
       p->state = RUNNABLE;
-      if(run_exist) p->v_runtime = min_vrt - (1000<<10)/weight[p->nice]; 
-      else p->v_runtime = 0;
-    }
-  }
 }
 
 // Wake up all processes sleeping on chan.
-void wakeup(void *chan) {
+void
+wakeup(void *chan)
+{
   acquire(&ptable.lock);
   wakeup1(chan);
   release(&ptable.lock);
@@ -602,201 +531,4 @@ procdump(void)
     }
     cprintf("\n");
   }
-}
-
-//get nice value of certain process.
-int getnice(int pid) {
-  int ret = -1;
-  struct proc *p;
-
-  acquire(&ptable.lock);
-  for(p=ptable.proc; p<&ptable.proc[NPROC]; p++) {
-    if(p->pid == pid) {
-      ret = p->nice;
-      release(&ptable.lock);
-      return ret;
-    }
-  }
-  release(&ptable.lock);
-  return ret;
-}
-
-//set nice value of certain process
-int setnice(int pid,int n_val) {
-  if(n_val < 0 || n_val >= 40) return -1; //Invalid nice value
-
-  struct proc *p;
-
-  acquire(&ptable.lock);
-  for(p=ptable.proc; p<&ptable.proc[NPROC]; p++) {
-    if(p->pid == pid) {
-      p->nice = n_val;
-      release(&ptable.lock);
-      return 0;
-    }
-  }
-  release(&ptable.lock);
-  return -1;
-}
-
-void ps(int pid) {
-  struct proc *p;
-  int first = 0;
-  const char *str[] = {"UNUSED","EMBRYO","SLEEPING","RUNNABLE","RUNNING","ZOMBIE "};
-
-  acquire(&ptable.lock);
-  for(p=ptable.proc; p<&ptable.proc[NPROC]; p++) {
-    if((pid == 0 || p->pid == pid) && p->state > 1) {
-      //Except UNUSED and EMBRYO
-      if(first == 0) {
-        cprintf("name\t pid\t state\t\t priority\t");
-        cprintf("runtime/weight\t runtime\t v_runtime\t tick %d\n",ticks*1000);
-        first = 1;
-      }
-      cprintf("%s\t %d\t %s\t %d\t\t",p->name,p->pid,str[p->state],p->nice);
-      cprintf("%d\t\t %d\t\t %d\n",p->t_runtime/weight[p->nice],p->t_runtime,p->v_runtime);
-    }
-  }
-  release(&ptable.lock);
-}
-
-uint mmap(uint addr,int length,int prot,int flags,int fd,int offset) {
-  //important!!!!!! when we get mmap_area, then please reset addr to zero when error occured.
-  //we determine whether this area is using by checking address is bigger than MMAPBASE;
-
-  /* Define Some Variables */
-  struct proc *p = myproc();
-  struct mmap_area *mmap_cur; //pointer that will indicate be used mmap_area
-  struct file *f = fd == -1 ? 0 : filedup(p->ofile[fd]);
-  uint sam = addr + MMAPBASE; //start address of memory
-  int p_cnt = length/PGSIZE; //count of page
-  int PW = (prot&PROT_WRITE); //is it writable?
-  char *tmp_memory[1<<15]; //when mappng pages and alloc, there's will error. then we have to empty mappage and physical memory.
-  int t_cnt = 0; //tmp_memory index
-
-  /* Determining whether condition is apporpriate*/
-  if(addr%PGSIZE || length%PGSIZE) return 0; //addr is always page-aligned, length is also a multiple of page size
-  if((flags&MAP_ANONYMOUS) && fd != -1) return 0; //It's anonymous, but fd is not -1.
-  if(!(flags&MAP_ANONYMOUS) && fd == -1) return 0; //It's not anonymous, but fd is -1.
-  if(f && ((prot&PROT_READ) && f->readable == 0)) return 0; //when have file, check read permission.
-  if(f && ((prot&PROT_WRITE) && f->writable == 0)) return 0; //when have file, check write permission.
-  if(fd == -1 && offset != 0) return 0; //offset is given for only fd. if fd is not given, it should be 0.
-
-  /* Real Code that Execute mmap*/
-  for(int i=0; i<64; i++) if(mmap_area_array[i].addr < MMAPBASE) {mmap_cur = &mmap_area_array[i]; goto found;}
-  return 0; //there's no empty space in mmap_area_array
-
-  found:
-  mmap_cur->f = f;
-  mmap_cur->addr = sam;
-  mmap_cur->length = length;
-  mmap_cur->offset = offset;
-  mmap_cur->prot = prot;
-  mmap_cur->flags = flags;
-  mmap_cur->p = p;
-
-  // we have to divide several cases.
-  if(flags <= 1) {
-    //no page table allocation needed. just return start address.
-    return sam;
-  } else if(flags == 2) {
-    //MAP_POPULATE
-    uint t_off = f->off; //we have to save offset, because offset is moving by fileread.
-    f->off = offset;
-    for(t_cnt=0; t_cnt<p_cnt; t_cnt++) {
-      char *phy_addr = tmp_memory[t_cnt] = kalloc(); //tmp_memory[t_cnt]를 언제 다쓰고 있니?
-      if(phy_addr == 0) goto DIE_IN; //physical address를 구할수 없었습니다. //이전거 다 밀어야 함.
-      memset(phy_addr,0,PGSIZE); //생각해보니 항상 다읽어온다는 보장이 없으니 싹싹밀게요. 원하지 않는 게 나올 수도 있어서.
-      fileread(f,phy_addr,PGSIZE);
-      if(mappages(p->pgdir,(void*)(sam + PGSIZE*t_cnt),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) {f->off = t_off; goto EL_FAIL;}
-    }
-    f->off = t_off;
-    return sam;
-  } else if(flags == 3) {
-    //MAP_ANONYMOUS | MAP_POPULATE
-    for(t_cnt=0; t_cnt<p_cnt; t_cnt++) {
-      char *phy_addr = tmp_memory[t_cnt] = kalloc();
-      if(phy_addr == 0) goto DIE_IN;
-      memset(phy_addr,0,PGSIZE);
-      if(mappages(p->pgdir,(void*)(sam + PGSIZE*t_cnt),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto EL_FAIL;
-    }
-    return sam;
-  } else {mmap_cur->addr = 0; return 0;} //Not Defined Flag -> FAIL;
-
-  EL_FAIL:
-  //t_cnt번째의 memory 삭제
-  memset(tmp_memory[t_cnt],0,PGSIZE);
-  kfree(tmp_memory[t_cnt]);
-  DIE_IN:
-  //t_cnt-1 까지 kfree 및 page 삭제
-  for(int i=0; i<t_cnt; i++) {
-    pte_t *PTE;
-    PTE = walkpgdir(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE),0);
-    *PTE = 0;
-    memset(tmp_memory[t_cnt],0,PGSIZE);
-    kfree(tmp_memory[t_cnt]);
-  }
-  mmap_cur->addr = 0;
-  return 0;
-}
-
-int munmap(uint addr) {
-  if(addr%PGSIZE) return 0;
-
-  struct proc *p = myproc(); //now process
-  struct mmap_area *mmap_cur = 0;
-
-  for(int i=0; i<64; i++) if(mmap_area_array[i].addr == addr && mmap_area_array[i].p == p) {mmap_cur = &mmap_area_array[i]; goto found;}
-  return -1;
-
-  found:
-  int p_cnt = mmap_cur->length/PGSIZE;
-  for(int i=0; i<p_cnt; i++) {
-    pte_t *PTE;
-    PTE = walkpgdir(p->pgdir,(void*)(mmap_cur->addr+i*PGSIZE),0); //This is page table entry.
-    if(PTE && (*PTE&PTE_P)) {
-      char* VA = P2V(PTE_ADDR(*PTE));
-      memset(VA,1,PGSIZE); //fill with 1
-      kfree(VA); //when freeing the physical page
-      *PTE = 0;  //*PTE ^= PTE_P; ->this will work correctly maybe.
-    }
-  }
-  mmap_cur->addr = 0;
-  return 1;
-}
-
-int freemem() {
-  return ff_cnt;
-}
-
-int page_fault_handler(uint addr,int prot) {
-  struct proc *p = myproc();
-  struct mmap_area *mmap_cur = 0;
-
-  for(int i=0; i<64; i++) {
-    mmap_cur = &mmap_area_array[i];
-    uint left = mmap_cur->addr, right = left + mmap_cur->length;
-    if(left<=addr && addr<right && mmap_cur->p == p) goto found; //addr의 주소를 포함하는 mmap_area를 가져오기.
-  }
-  return -1; //there's no corresponding mmap_area...possible?
-
-  found:
-  if(prot && !(mmap_cur->prot&PROT_WRITE)) return -1; //If fault was write while mmap_area is write prohibited
-
-  int PW = mmap_cur->prot&PROT_WRITE;
-  char* phy_addr = kalloc();
-  if(phy_addr == 0) return -1;
-  memset(phy_addr,0,PGSIZE);
-  if(mmap_cur->f) {
-    int t_off = mmap_cur->f->off;
-    mmap_cur->f->off = mmap_cur->offset;
-    fileread(mmap_cur->f,phy_addr,PGSIZE);
-    mmap_cur->f->off = t_off;
-  }
-  if(mappages(p->pgdir,(void*)(PGROUNDDOWN(addr)),PGSIZE,V2P(phy_addr),PW|PTE_U) == -1) goto KFF;
-  return 1;
-
-  KFF:
-  kfree(phy_addr);
-  return -1;
 }
