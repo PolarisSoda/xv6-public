@@ -87,7 +87,7 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
       panic("remap");
     *pte = pa | perm | PTE_P;
 
-    if(perm & PTE_U) {
+    if(1) {
       uint idx = pa/PGSIZE;
       cprintf("%d, limit : %d\n",idx,PHYSTOP/PGSIZE);
       if(idx < 0) panic("minus");
