@@ -91,7 +91,7 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
     pa += PGSIZE;
 
     
-    pages[(int)a/PGSIZE].pgdir = pgdir;
+    pages[9].pgdir = pgdir;
     //pages[(int)a/PGSIZE].vaddr = a;
   }
   return 0;
