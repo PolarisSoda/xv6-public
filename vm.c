@@ -104,8 +104,8 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
         struct page *cur = &pages[idx];
         if(page_lru_head) {
           //it means lru list is empty.
-          //page_lru_head = cur;
-          //page_lru_head->next = page_lru_head, page_lru_head->prev = page_lru_head;
+          page_lru_head = cur;
+          page_lru_head->next = cur, page_lru_head->prev = cur;
         } else {
           //cur->next = page_lru_head;
           //cur->prev = page_lru_head->prev;
