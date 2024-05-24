@@ -345,7 +345,7 @@ freevm(pde_t *pgdir)
   for(i = 0; i < NPDENTRIES; i++){
     if(pgdir[i] & PTE_P){
       char * v = P2V(PTE_ADDR(pgdir[i]));
-      cprintf("%x\n",(int)v);
+      //cprintf("%x\n",(int)v);
       kfree(v);
     }
   }
@@ -358,11 +358,12 @@ void
 clearpteu(pde_t *pgdir, char *uva)
 {
   pte_t *pte;
-
+  cprintf("%x ",(int)pte);
   pte = walkpgdir(pgdir, uva, 0);
   if(pte == 0)
     panic("clearpteu");
   *pte &= ~PTE_U;
+  cprintf("%x\n",(int)pte);
 }
 
 // Given a parent process's page table, create a copy
