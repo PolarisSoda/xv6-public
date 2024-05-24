@@ -10,6 +10,8 @@
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
 extern struct page pages[PHYSTOP/PGSIZE];
+extern struct page *page_lru_head;
+extern int num_lru_pages;
 
 // Set up CPU's kernel segment descriptors.
 // Run once on entry on each CPU.
@@ -33,9 +35,7 @@ seginit(void)
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
-static pte_t *
-walkpgdir(pde_t *pgdir, const void *va, int alloc)
-{
+static pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
   pde_t *pde;
   pte_t *pgtab;
 
@@ -75,6 +75,13 @@ int num_free_pages;
 int num_lru_pages;
 */
 
+//LOGIC
+//만들어질때 page에 등록된다.
+//만약 PTE_U라면, lru에도 넣어준다.
+/*
+head -> 
+null
+*/
 static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
   char *a, *last;
   pte_t *pte;
@@ -88,14 +95,24 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
       panic("remap");
     *pte = pa | perm | PTE_P;
 
+    //cause we will not consider about PHYSTOP ~ DEVSPACE
     if(pa < PHYSTOP) {
       uint idx = pa/PGSIZE;
-      if(idx == 0) idx = 0;
-      //pages[idx].pgdir = pgdir;
-      //pages[idx].vaddr = a;
+      pages[idx].pgdir = pgdir;
+      pages[idx].vaddr = a;
+      if(*pte & PTE_U) {
+        struct pages *cur = &pages[idx];
+        if(page_lru_head) {
+          //it means lru list is empty.
+          page_lru_head = cur;
+          page_lru_head->next = page_lru_head, page_lru_head->prev = page_lru_head;
+        } else {
+          struct pages *prev = page_lru_head->prev;
+        }
+        num_lru_pages++;
+      }
     }
     
-
     if(a == last)
       break;
     a += PGSIZE;

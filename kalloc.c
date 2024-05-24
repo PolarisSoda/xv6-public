@@ -95,10 +95,23 @@ kalloc(void)
   r = kmem.freelist;
 //  if(!r && reclaim())
 //	  goto try_again;
-  if(r)
+  if(r) {
     kmem.freelist = r->next;
+  } else {
+    //there's no physical memory. so we have to swap it.
+
+  }
   if(kmem.use_lock)
     release(&kmem.lock);
   return (char*)r;
 }
 
+void function() {
+  for(int i=0; i<PHYSTOP/PGSIZE; i++) {
+    //pseudo
+    /*
+    if pages[i].vaddr를 봤을 때 -> walkpagedir로? pte_A가 0이라면, LRU에 넣는다.
+    
+    */
+  }
+}
