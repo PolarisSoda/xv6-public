@@ -90,8 +90,8 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
     if(pa && PTE_U) {
       uint idx = pa/PGSIZE;
       if(idx < 0) panic("minus");
-      pages[0].pgdir = pgdir;
-      pages[0].vaddr = a;
+      pages[idx].pgdir = pgdir;
+      pages[idx].vaddr = a;
     }
     
 
