@@ -61,6 +61,7 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
 
 // ONLY MAPPAGES MAKE PAGETABLES RIGHT?
 // SO WE WILL MAKE IT TO GIVE INFO TO PAGE TABLES
+// WE ASSUME THAT 
 /*
 struct page{
 	struct page *next;
@@ -87,7 +88,7 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
       panic("remap");
     *pte = pa | perm | PTE_P;
 
-    if(pa <= PHYSTOP) {
+    if(pa < PHYSTOP) {
       uint idx = pa/PGSIZE;
       pages[idx].pgdir = pgdir;
       pages[idx].vaddr = a;
