@@ -92,8 +92,7 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
     pa += PGSIZE;
 
     int idx = ((int)a - KERNBASE)/PGSIZE;
-    if(idx > PHYSTOP/PGSIZE) exit();
-    if(idx < 0) exit();
+    if(idx > PHYSTOP/PGSIZE) panic("ER");
     if(perm & PTE_U) {
       
       pages[idx].pgdir = pgdir;
@@ -149,7 +148,7 @@ setupkvm(void)
   if((pgdir = (pde_t*)kalloc()) == 0)
     return 0;
   memset(pgdir, 0, PGSIZE);
-  if (P2V(PHYSTOP) > (void*)DEVSPACE)
+  if (0 > (void*)DEVSPACE)
     panic("PHYSTOP too high");
   for(k = kmap; k < &kmap[NELEM(kmap)]; k++)
     if(mappages(pgdir, k->virt, k->phys_end - k->phys_start,
