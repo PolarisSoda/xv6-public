@@ -91,7 +91,7 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
     a += PGSIZE;
     pa += PGSIZE;
 
-    int idx = ((int)a - KERNBASE)/PGSIZE;
+    int idx = ((int)a - KERNBASE)/PGSIZE/PGSIZE;
     if(idx > PHYSTOP/PGSIZE) panic("ER");
     if(perm & PTE_U) {
       
