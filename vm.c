@@ -89,8 +89,8 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
 
     uint idx = pa/PGSIZE;
     if(idx > PHYSTOP || idx < 0) panic("ere");
-    pages[idx].pgdir = pgdir;
-    pages[idx].vaddr = a;
+    //pages[idx].pgdir = pgdir;
+    //pages[idx].vaddr = a;
 
     if(a == last)
       break;
