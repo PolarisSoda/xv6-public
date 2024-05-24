@@ -358,8 +358,8 @@ void
 clearpteu(pde_t *pgdir, char *uva)
 {
   pte_t *pte;
-  cprintf("%x ",(int)pte);
   pte = walkpgdir(pgdir, uva, 0);
+  cprintf("%x ",(int)pte);
   if(pte == 0)
     panic("clearpteu");
   *pte &= ~PTE_U;
