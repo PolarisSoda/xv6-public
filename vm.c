@@ -95,6 +95,7 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
       pages[idx].vaddr = a;
     } else {
       uint idx = pa/PGSIZE;
+      if(idx == 0) idx = 0;
       //if(idx < 0 || idx > PHYSTOP/PGSIZE) exit();
     }
     
