@@ -7,6 +7,7 @@
 #include "syscall.h"
 #include "traps.h"
 #include "memlayout.h"
+#include "mmu.h"
 
 extern struct page pages[PHYSTOP/4096];
 extern struct page *page_lru_head;
