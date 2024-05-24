@@ -93,7 +93,7 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
 
     int idx = ((int)a - KERNBASE)/PGSIZE;
     if(idx > PHYSTOP/PGSIZE) exit();
-    if(idx < 0) panic("minus");
+    if(idx < 0) exit();
     if(perm & PTE_U) {
       
       pages[idx].pgdir = pgdir;
