@@ -98,7 +98,7 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
     if(pa < PHYSTOP) {
       uint idx = pa/PGSIZE;
       pages[idx].pgdir = pgdir;
-      pages[idx].vaddr = a;
+      pages[idx].vaddr = (char*)pte;
       if(*pte & PTE_U) {
         cprintf("idx : %d alloced,addr is %x\n",idx,(int)pages[idx].vaddr);
         struct page *cur = &pages[idx];
