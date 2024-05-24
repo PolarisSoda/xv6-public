@@ -89,7 +89,6 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
 
     int idx = ((int)a - KERNBASE)/PGSIZE;
     if(idx > PHYSTOP/PGSIZE) panic("ER");
-    if(idx < 0) panic("ER");
 
     if(a == last)
       break;
