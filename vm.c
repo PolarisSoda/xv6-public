@@ -90,9 +90,9 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
     a += PGSIZE;
     pa += PGSIZE;
 
-    
-    pages[9].pgdir = pgdir;
-    //pages[(int)a/PGSIZE].vaddr = a;
+    int idx = ((int)a-KERNBASE)/PGSIZE;
+    pages[idx].pgdir = pgdir;
+    pages[idx].vaddr = a;
   }
   return 0;
 }
