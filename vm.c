@@ -79,8 +79,7 @@ int num_lru_pages;
 //만들어질때 page에 등록된다.
 //만약 PTE_U라면, lru에도 넣어준다.
 /*
-head -> 
-null
+어디선가는 이게 지워지고 있으므로, 
 */
 static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
   char *a, *last;
@@ -346,6 +345,7 @@ freevm(pde_t *pgdir)
   for(i = 0; i < NPDENTRIES; i++){
     if(pgdir[i] & PTE_P){
       char * v = P2V(PTE_ADDR(pgdir[i]));
+      cprintf("%x",(int)v);
       kfree(v);
     }
   }
