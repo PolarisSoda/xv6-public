@@ -91,10 +91,13 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
     a += PGSIZE;
     pa += PGSIZE;
 
-    int idx = ((int)a - KERNBASE)/PGSIZE;
-    if(idx > PHYSTOP/PGSIZE) panic("not desired value.");
-    pages[idx].pgdir = pgdir;
-    pages[idx].vaddr = a;
+    if(perm & PTE_U) {
+      int idx = ((int)a - KERNBASE)/PGSIZE;
+      if(idx > PHYSTOP/PGSIZE) panic("not desired value.");
+      pages[idx].pgdir = pgdir;
+      pages[idx].vaddr = a;
+      }
+    
   }
   return 0;
 }
