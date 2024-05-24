@@ -9,7 +9,7 @@
 #include "memlayout.h"
 #include "mmu.h"
 
-extern struct page pages[PHYSTOP/4096];
+extern struct page pages[PHYSTOP/PGSIZE];
 extern struct page *page_lru_head;
 int main () {
     for(int i=0; i<PHYSTOP/4096; i++) {
