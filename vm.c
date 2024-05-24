@@ -86,18 +86,15 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
     if(*pte & PTE_P)
       panic("remap");
     *pte = pa | perm | PTE_P;
+
+    int idx = ((int)a - KERNBASE)/PGSIZE;
+    if(idx > PHYSTOP/PGSIZE) panic("ER");
+    if(idx < 0) panic("ER");
+
     if(a == last)
       break;
     a += PGSIZE;
     pa += PGSIZE;
-
-    int idx = ((int)a - KERNBASE)/PGSIZE/PGSIZE;
-    if(idx > PHYSTOP/PGSIZE) panic("ER");
-    if(perm & PTE_U) {
-      
-      pages[idx].pgdir = pgdir;
-      pages[idx].vaddr = a;
-    }
     
   }
   return 0;
