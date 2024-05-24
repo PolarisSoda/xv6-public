@@ -101,7 +101,7 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
       pages[idx].pgdir = pgdir;
       pages[idx].vaddr = a;
       if(*pte & PTE_U) {
-        struct page *cur = &pages[idx];
+        //struct page *cur = &pages[idx];
         if(page_lru_head) {
           //it means lru list is empty.
           //page_lru_head = cur;
