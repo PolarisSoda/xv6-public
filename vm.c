@@ -87,7 +87,7 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
       panic("remap");
     *pte = pa | perm | PTE_P;
 
-    if(pa && PTE_U) {
+    if(pa & PTE_U) {
       uint idx = pa/PGSIZE;
       if(idx < 0) panic("minus");
       pages[idx].pgdir = pgdir;
