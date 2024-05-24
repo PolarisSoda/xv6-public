@@ -57,9 +57,23 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
 // Create PTEs for virtual addresses starting at va that refer to
 // physical addresses starting at pa. va and size might not
 // be page-aligned.
-static int
-mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
-{
+
+// ONLY MAPPAGES MAKE PAGETABLES RIGHT?
+// SO WE WILL MAKE IT TO GIVE INFO TO PAGE TABLES
+/*
+struct page{
+	struct page *next;
+	struct page *prev;
+	pde_t *pgdir;
+	char *vaddr;
+};
+struct page pages[PHYSTOP/PGSIZE];
+struct page *page_lru_head; 
+int num_free_pages;
+int num_lru_pages;
+*/
+
+static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
   char *a, *last;
   pte_t *pte;
 
@@ -75,6 +89,9 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
       break;
     a += PGSIZE;
     pa += PGSIZE;
+
+    pages[(int)a/PGSIZE].pgdir = pgdir;
+    pages[(int)a/PGSIZE].vaddr = pte;
   }
   return 0;
 }

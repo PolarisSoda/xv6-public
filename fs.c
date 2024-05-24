@@ -671,8 +671,7 @@ nameiparent(char *path, char *name)
   return namex(path, 1, name);
 }
 
-void swapread(char* ptr, int blkno)
-{
+void swapread(char* ptr, int blkno) {
 	struct buf* bp;
 	int i;
 
@@ -689,8 +688,7 @@ void swapread(char* ptr, int blkno)
 	}
 }
 
-void swapwrite(char* ptr, int blkno)
-{
+void swapwrite(char* ptr, int blkno) {
 	struct buf* bp;
 	int i;
 

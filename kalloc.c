@@ -23,10 +23,10 @@ struct {
   struct run *freelist;
 } kmem;
 
-struct page pages[PHYSTOP/PGSIZE];
-struct page *page_lru_head;
-int num_free_pages;
-int num_lru_pages;
+struct page pages[PHYSTOP/PGSIZE]; //이건 그냥 page를 관리하는 관리체.
+struct page *page_lru_head; //이게 LRU PAGE들을 관리하는 Circulat LIST.
+int num_free_pages = PHYSTOP/PGSIZE;
+int num_lru_pages = 0;
 
 // Initialization happens in two phases.
 // 1. main() calls kinit1() while still using entrypgdir to place just
