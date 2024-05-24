@@ -12,13 +12,8 @@
 #include "proc.h"
 #include "elf.h"
 
-
-
-extern struct page pages[PHYSTOP/PGSIZE];
-extern struct page *page_lru_head;
 int main () {
     for(int i=0; i<PHYSTOP/4096; i++) {
-        printf(1,"%d %d\n",i,(int)pages[i].vaddr);
     }
 	int a, b;
 

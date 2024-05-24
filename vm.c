@@ -101,6 +101,7 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
       pages[idx].pgdir = pgdir;
       pages[idx].vaddr = a;
       if(*pte & PTE_U) {
+        cprintf("idx : %d alloced and address is %d\n",idx,(int)pages[idx].vaddr);
         struct page *cur = &pages[idx];
         if(!page_lru_head) {
           //it means lru list is empty.
@@ -113,6 +114,13 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
           page_lru_head = cur;
         }
         num_lru_pages++;
+
+        struct page *now = page_lru_head;
+        for(int i=0; i<num_lru_pages; i++) {
+          cprintf("now_addr : %d ",(int)now->vaddr);
+          now = now->next;
+        }
+        cprintf("\n");
       }
     }
     
