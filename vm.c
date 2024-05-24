@@ -10,6 +10,7 @@
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
 extern struct page pages[PHYSTOP/PGSIZE];
+
 // Set up CPU's kernel segment descriptors.
 // Run once on entry on each CPU.
 void
@@ -91,7 +92,7 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
     pa += PGSIZE;
 
     int idx = ((int)a - KERNBASE)/PGSIZE;
-    if(idx == 0) panic("this is 0.");
+    if(idx > PHYSTOP/PGSIZE) panic("not desired value.");
     pages[idx].pgdir = pgdir;
     pages[idx].vaddr = a;
   }
