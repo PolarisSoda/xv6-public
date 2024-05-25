@@ -118,7 +118,7 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
         cprintf("now_addr : ");
         for(int i=0; i<num_lru_pages; i++) {
           pte_t *temp = walkpgdir(now->pgdir,now->vaddr,0);
-          cprintf(" %x %x ->",(uint)now->vaddr,*temp);
+          cprintf(" %x %x %d ->",(uint)now->vaddr,*temp,*temp,&PTE_U);
           now = now->next;
         }
         cprintf("\n");
