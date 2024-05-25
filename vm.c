@@ -310,6 +310,7 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 int
 deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 {
+  cprintf("DEALLOCED\n");
   pte_t *pte;
   uint a, pa;
 
@@ -322,6 +323,7 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
     if(!pte)
       a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
     else if((*pte & PTE_P) != 0){
+      cprintf("%x\n",&pte);
       pa = PTE_ADDR(*pte);
       if(pa == 0)
         panic("kfree");
