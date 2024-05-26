@@ -116,25 +116,6 @@ trap(struct trapframe *tf)
         num_lru_pages++;
       }
     }
-
-    if(*pte&PTE_U) {
-      //만약 user라면, 정상적이라면 user겠지만.
-      
-      struct page *cur = &pages[idx];
-      if(use_pages_lock) acquire(&pages_lock); //critical section starts.
-      if(!page_lru_head) {
-        //it means lru list is empty.
-        page_lru_head = cur;
-        page_lru_head->next = cur, page_lru_head->prev = cur;
-      } else {
-        //lru has something.
-        cur->next = page_lru_head;
-        cur->prev = page_lru_head->prev;
-        page_lru_head->prev = cur;
-        page_lru_head = cur;
-      }
-      num_lru_pages++;
-    }
     //accessing swapped page will occur page fault.
     break;
 
