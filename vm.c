@@ -82,12 +82,12 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
 
     //cause we will not consider about PHYSTOP ~ DEVSPACE
     if(pa < PHYSTOP) {
-      
       uint idx = pa/PGSIZE;
       pages[idx].pgdir = pgdir;
       pages[idx].vaddr = a; //walkpgdir로 접근해라.
       if(*pte & PTE_U) {
         struct page *cur = &pages[idx];
+
         if(use_pages_lock) acquire(&pages_lock); //critical section starts.
         if(!page_lru_head) {
           //it means lru list is empty.
@@ -97,8 +97,8 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
           //lru has something.
           cur->next = page_lru_head;
           cur->prev = page_lru_head->prev;
+          cur->prev->next = cur;
           page_lru_head->prev = cur;
-          page_lru_head = cur;
         }
         num_lru_pages++;
         if(use_pages_lock) release(&pages_lock); //critical section ends.
@@ -212,11 +212,9 @@ switchuvm(struct proc *p)
 
 // Load the initcode into address 0 of pgdir.
 // sz must be less than a page.
-void
-inituvm(pde_t *pgdir, char *init, uint sz)
-{
+// 여기서는 특별히 뭐 쓰는거 없다.
+void inituvm(pde_t *pgdir, char *init, uint sz) {
   char *mem;
-
   if(sz >= PGSIZE)
     panic("inituvm: more than a page");
   mem = kalloc();
@@ -227,9 +225,8 @@ inituvm(pde_t *pgdir, char *init, uint sz)
 
 // Load a program segment into pgdir.  addr must be page-aligned
 // and the pages from addr to addr+sz must already be mapped.
-int
-loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz)
-{
+// pte_p가 그거면 어떡하노 -> 일단 보류.
+int loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz) {
   uint i, pa, n;
   pte_t *pte;
 
@@ -251,9 +248,8 @@ loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz)
 
 // Allocate page tables and physical memory to grow process from oldsz to
 // newsz, which need not be page aligned.  Returns new size or 0 on error.
-int
-allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
-{
+// 어차피 mappage로 할당하는 이상, lru_list에서는 건드릴 이유가 없다.
+int allocuvm(pde_t *pgdir, uint oldsz, uint newsz) {
   char *mem;
   uint a;
 
@@ -285,9 +281,11 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 // newsz.  oldsz and newsz need not be page-aligned, nor does newsz
 // need to be less than oldsz.  oldsz can be larger than the actual
 // process size.  Returns the new process size.
-int
-deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
-{
+
+// 할당을 해제하는 코드 같다.
+// 만약에나마 혹시나마 이거 하다가 swap에 갔을수도 있으니까.
+// 이건 해제해줘야할거같다.
+int deallocuvm(pde_t *pgdir, uint oldsz, uint newsz) {
   pte_t *pte;
   uint a, pa;
 
@@ -299,7 +297,26 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
     pte = walkpgdir(pgdir, (char*)a, 0);
     if(!pte)
       a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
-    else if((*pte & PTE_P) != 0){
+    else {
+      if(*pte&PTE_P) {
+        pa = PTE_ADDR(*pte);
+        if(pa == 0)
+          panic("kfree");
+        char *v = P2V(pa);
+        kfree(v);
+        *pte = 0;
+      } else {
+        cprintf("Really?");
+        uint offset = (PTE_ADDR(*pte) >> PTXSHIFT);
+        if(offset != 0) {
+
+        }
+      }
+    }
+    /*
+    if(!pte)
+      a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
+    else if((*pte & PTE_P) != 0) {
       pa = PTE_ADDR(*pte);
       if(pa == 0)
         panic("kfree");
@@ -307,6 +324,7 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
       kfree(v);
       *pte = 0;
     }
+    */
   }
   return newsz;
 }

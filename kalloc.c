@@ -36,6 +36,7 @@ char swap_bit[SWAPMAX/64+1];
 // the pages mapped by entrypgdir on free list.
 // 2. main() calls kinit2() with the rest of the physical pages
 // after installing a full page table that maps them on all cores.
+
 void
 kinit1(void *vstart, void *vend)
 {
@@ -84,6 +85,7 @@ void kfree(char *v) {
     release(&kmem.lock);
 }
 
+//no locking needed kfree.
 void nl_kfree(char *v) {
   //lock없는 kfree.
   struct run *r;
@@ -101,12 +103,11 @@ void nl_kfree(char *v) {
 int reclaim() {
   //만약 free할 공간이 없다면, 0을 return
   //찾았으면 하나 evict하고 1을 return
-  cprintf("HJER\n");
   if(use_pages_lock) acquire(&pages_lock);
-  cprintf("HJER\n");
+
   for(int i=0; i<num_lru_pages; i++) {
     pte_t* now_pte = walkpgdir(page_lru_head->pgdir,page_lru_head->vaddr,0);
-    if(!now_pte) panic("reclaim"); //없을수가 있나?
+    if(!now_pte) panic("lru holds null"); //없을수가 있나?
 
     if(*now_pte&PTE_A) {
       *now_pte &= ~PTE_A; //clear PTE_A;
@@ -125,11 +126,9 @@ int reclaim() {
           goto SUCCESS;
         }
       }
-      
     }
     page_lru_head = page_lru_head->next;
   }
-  cprintf("???????????");
   if(use_pages_lock) release(&pages_lock);
   return 0;
 
