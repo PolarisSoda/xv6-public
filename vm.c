@@ -102,6 +102,7 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
       pages[idx].pgdir = pgdir;
       pages[idx].vaddr = a; //walkpgdir로 접근해라.
       acquire(&pages_lock);
+      release(&pages_lock);
       if(*pte & PTE_U) {
         struct page *cur = &pages[idx];
         if(!page_lru_head) {
@@ -117,7 +118,6 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
         }
         num_lru_pages++;
       }
-      release(&pages_lock);
     }
     
     if(a == last)
