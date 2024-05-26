@@ -111,7 +111,7 @@ char* kalloc(void) {
 
 //try_again:
   if(kmem.use_lock)
-    acquire(&pages_lock);
+    acquire(&kmem.lock);
   r = kmem.freelist;
 //  if(!r && reclaim())
 //	  goto try_again;
@@ -122,7 +122,7 @@ char* kalloc(void) {
     return reclaim();
   }
   if(kmem.use_lock)
-    release(&pages_lock);
+    release(&kmem.lock);
   return (char*)r;
 }
 
