@@ -104,7 +104,7 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
       pages[idx].vaddr = a; //walkpgdir로 접근해라.
       if(*pte & PTE_U) {
         struct page *cur = &pages[idx];
-
+        cprintf("%d\n",use_pages_lock);
         if(use_pages_lock) acquire(&pages_lock); //critical section starts.
         if(!page_lru_head) {
           //it means lru list is empty.
