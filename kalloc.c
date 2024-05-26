@@ -156,6 +156,8 @@ char* kalloc(void) {
     cprintf("reclaim!!!!\n");
     if(!reclaim()) {
       cprintf("OOM\n");
+      if(kmem.use_lock)
+        release(&kmem.lock);
       return 0;
     }
     cprintf("reclaim ended!\n");
