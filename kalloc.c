@@ -39,7 +39,7 @@ void
 kinit1(void *vstart, void *vend)
 {
   initlock(&kmem.lock, "kmem");
-  initlock(&pages_lock, "pages_lock");
+  //initlock(&pages_lock, "pages_lock");
   kmem.use_lock = 0;
   freerange(vstart, vend);
 }
