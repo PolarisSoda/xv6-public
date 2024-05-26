@@ -13,7 +13,7 @@ pde_t *kpgdir;  // for use in scheduler()
 extern struct page pages[PHYSTOP/PGSIZE];
 extern struct page *page_lru_head;
 extern int num_lru_pages;
-struct spinlock pages_lock;
+extern struct spinlock pages_lock;
 
 // Set up CPU's kernel segment descriptors.
 // Run once on entry on each CPU.
