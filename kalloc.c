@@ -110,6 +110,8 @@ char* reclaim() {
 // Returns 0 if the memory cannot be allocated.
 char* kalloc(void) {
   struct run *r;
+  if(use_pages_lock) acquire(&pages_lock);
+  if(use_pages_lock) release(&pages_lock);
 
 //try_again:
   if(kmem.use_lock)

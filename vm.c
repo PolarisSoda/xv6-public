@@ -10,6 +10,7 @@
 
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
+
 extern struct page pages[PHYSTOP/PGSIZE];
 extern struct page *page_lru_head;
 extern int num_lru_pages;
@@ -102,7 +103,6 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
       pages[idx].pgdir = pgdir;
       pages[idx].vaddr = a; //walkpgdir로 접근해라.
       if(*pte & PTE_U) {
-        cprintf("%d\n",use_pages_lock);
         struct page *cur = &pages[idx];
         if(use_pages_lock) acquire(&pages_lock); //critical section starts.
         if(!page_lru_head) {
