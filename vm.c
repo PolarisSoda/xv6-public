@@ -116,6 +116,7 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
           page_lru_head = cur;
         }
         num_lru_pages++;
+        cprintf("%d\n",pl_lock);
         if(pl_lock) release(&pages_lock);
       }
     }
