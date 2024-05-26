@@ -118,7 +118,7 @@ kalloc(void)
     kmem.freelist = r->next;
   } else {
     //there's no physical memory. so we have to swap it.
-    r = reclaim();
+    return reclaim();
   }
   if(kmem.use_lock)
     release(&kmem.lock);
