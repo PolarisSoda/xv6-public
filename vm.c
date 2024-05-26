@@ -16,11 +16,7 @@ extern struct page *page_lru_head;
 extern int num_lru_pages;
 extern struct spinlock pages_lock;
 extern int use_pages_lock;
-extern struct {
-  struct spinlock lock;
-  int use_lock;
-  struct run *freelist;
-} kmem;
+char swap_bit[SWAPMAX/64+1];
 
 // Set up CPU's kernel segment descriptors.
 // Run once on entry on each CPU.
@@ -310,7 +306,10 @@ int deallocuvm(pde_t *pgdir, uint oldsz, uint newsz) {
         uint offset = (PTE_ADDR(*pte) >> PTXSHIFT);
         if(offset != 0) {
           cprintf("%d\n",offset-1);
+          swapwrite(0,(offset-1)<<3);
+          swap_bit
           *pte = 0;
+          
         }
       }
     }
