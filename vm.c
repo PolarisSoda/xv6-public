@@ -98,13 +98,12 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
 
     //cause we will not consider about PHYSTOP ~ DEVSPACE
     if(pa < PHYSTOP) {
-      cprintf("%d\n",use_pages_lock);
       uint idx = pa/PGSIZE;
       pages[idx].pgdir = pgdir;
       pages[idx].vaddr = a; //walkpgdir로 접근해라.
       if(*pte & PTE_U) {
+        cprintf("%d\n",use_pages_lock);
         struct page *cur = &pages[idx];
-        
         if(use_pages_lock) acquire(&pages_lock); //critical section starts.
         if(!page_lru_head) {
           //it means lru list is empty.
