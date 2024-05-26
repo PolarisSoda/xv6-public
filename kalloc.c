@@ -83,36 +83,52 @@ void kfree(char *v) {
     release(&kmem.lock);
 }
 
+void nl_kfree(char *v) {
+  struct run *r;
+
+  if((uint)v % PGSIZE || v < end || V2P(v) >= PHYSTOP)
+    panic("kfree");
+
+  memset(v, 1, PGSIZE);
+
+  r = (struct run*)v;
+  r->next = kmem.freelist;
+  kmem.freelist = r;
+}
+
 int reclaim() {
+  //만약 free할 공간이 없다면, 0을 return
+  //찾았으면 하나 evict하고 1을 return
   if(use_pages_lock) acquire(&pages_lock);
-  struct page *cur = page_lru_head;
+
   for(int i=0; i<num_lru_pages; i++) {
-    pte_t* now_pte = walkpgdir(cur->pgdir,cur->vaddr,0);
-    if(!now_pte) panic("ERROR OCCURED"); //없을수가 있나?
+    pte_t* now_pte = walkpgdir(page_lru_head->pgdir,page_lru_head->vaddr,0);
+    if(!now_pte) panic("reclaim"); //없을수가 있나?
 
     if(*now_pte&PTE_A) {
       *now_pte &= ~PTE_A; //clear PTE_A;
     } else {
       char* phy_addr = (char*)P2V(PTE_ADDR(*now_pte));
-      for(int i=0; i<SWAPMAX/8; i++) {
+      for(int i=0; i<SWAPMAX/64; i++) {
         if(!swap_bit[i]) {
-          swap_bit[i] = 1;
-          swapwrite(phy_addr,i);
-          *now_pte &= ~PTE_P;
-          break;
+          swapwrite(phy_addr,i<<3); //swap에 쓴다.
+          swap_bit[i] = 0xFF; //썼다고 표시한다
+          *now_pte = (PTE_FLAGS(*now_pte) & (~PTE_P)) | (i<<PTXSHIFT); //기존의 PTE에서 PPN대신 OFFSET으로 채워넣고, PTE_P 비트를 제거한다.
+          nl_kfree(phy_addr); //메모리에서 내용을 지운다.
+          goto SUCCESS;
         }
       }
-      kfree(phy_addr);
+      
     }
-    cur = cur->next;
+    page_lru_head = page_lru_head->next;
   }
-  //SUCCESS:
+  if(use_pages_lock) release(&pages_lock);
+  return 0;
+
+  SUCCESS:
   if(use_pages_lock) release(&pages_lock);
   return 1;
   
-  //FAIL:
-  if(use_pages_lock) release(&pages_lock);
-  return 0;
 }
 // Allocate one 4096-byte page of physical memory.
 // Returns a pointer that the kernel can use.
@@ -129,7 +145,11 @@ char* kalloc(void) {
     kmem.freelist = r->next;
   } else {
     //there's no physical memory. so we have to swap it.
-    if(!reclaim()) panic("OOM!!!!!!!");
+    if(kmem.use_lock)
+    if(!reclaim()) {
+      cprintf("OOM\n");
+      return 0;
+    }
     goto RETRY;
   }
   if(kmem.use_lock)

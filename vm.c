@@ -53,7 +53,7 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
     // The permissions here are overly generous, but they can
     // be further restricted by the permissions in the page table
     // entries, if necessary.
-    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
+    *pde = V2P(pgtab) | PTE_W | PTE_U;
   }
   return &pgtab[PTX(va)];
 }
@@ -329,16 +329,12 @@ freevm(pde_t *pgdir)
 
 // Clear PTE_U on a page. Used to create an inaccessible
 // page beneath the user stack.
-void
-clearpteu(pde_t *pgdir, char *uva)
-{
+void clearpteu(pde_t *pgdir, char *uva) {
   pte_t *pte;
   pte = walkpgdir(pgdir, uva, 0);
-  cprintf("%x ",*pte);
   if(pte == 0)
     panic("clearpteu");
   *pte &= ~PTE_U;
-  cprintf("%x\n",*pte);
 }
 
 // Given a parent process's page table, create a copy
