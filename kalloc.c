@@ -107,6 +107,8 @@ char* reclaim() {
 // Returns a pointer that the kernel can use.
 // Returns 0 if the memory cannot be allocated.
 char* kalloc(void) {
+  acquire(&pages_lock);
+  release(&pages_lock);
   struct run *r;
 
 //try_again:
