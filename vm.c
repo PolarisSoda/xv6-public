@@ -82,7 +82,6 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
       pages[idx].pgdir = pgdir;
       pages[idx].vaddr = a; //walkpgdir로 접근해라.
       if(*pte & PTE_U) {
-        *pte &= ~PTE_P;
         struct page *cur = &pages[idx];
         if(use_pages_lock) acquire(&pages_lock); //critical section starts.
         if(!page_lru_head) {
