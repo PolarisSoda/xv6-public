@@ -35,7 +35,7 @@ seginit(void)
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
-static pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
+pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
   pde_t *pde;
   pte_t *pgtab;
 
@@ -81,7 +81,7 @@ int num_lru_pages;
 /*
 어디선가는 이게 지워지고 있으므로, 
 */
-static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
+int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
   char *a, *last;
   pte_t *pte;
 
@@ -98,30 +98,21 @@ static int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
     if(pa < PHYSTOP) {
       uint idx = pa/PGSIZE;
       pages[idx].pgdir = pgdir;
-      pages[idx].vaddr = a;
+      pages[idx].vaddr = a; //walkpgdir로 접근해라.
       if(*pte & PTE_U) {
-        cprintf("idx : %d alloced,addr is %x\n",idx,(int)pages[idx].vaddr);
         struct page *cur = &pages[idx];
         if(!page_lru_head) {
           //it means lru list is empty.
           page_lru_head = cur;
           page_lru_head->next = cur, page_lru_head->prev = cur;
         } else {
+          //lru has something.
           cur->next = page_lru_head;
           cur->prev = page_lru_head->prev;
           page_lru_head->prev = cur;
           page_lru_head = cur;
         }
         num_lru_pages++;
-
-        struct page *now = page_lru_head;
-        cprintf("now_addr : ");
-        for(int i=0; i<num_lru_pages; i++) {
-          pte_t *temp = walkpgdir(now->pgdir,now->vaddr,0);
-          cprintf(" %x %x %d ->",(uint)now->vaddr,*temp,*temp&PTE_U);
-          now = now->next;
-        }
-        cprintf("\n");
       }
     }
     

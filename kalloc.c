@@ -23,10 +23,12 @@ struct {
   struct run *freelist;
 } kmem;
 
+struct spinlock pages_lock;
 struct page pages[PHYSTOP/PGSIZE] = {0,}; //이건 그냥 page를 관리하는 관리체.
 struct page *page_lru_head; //이게 LRU PAGE들을 관리하는 Circulat LIST.
 int num_free_pages = PHYSTOP/PGSIZE;
 int num_lru_pages = 0;
+
 
 // Initialization happens in two phases.
 // 1. main() calls kinit1() while still using entrypgdir to place just
@@ -37,6 +39,7 @@ void
 kinit1(void *vstart, void *vend)
 {
   initlock(&kmem.lock, "kmem");
+  initlock(&pages_lock, "pages_lock");
   kmem.use_lock = 0;
   freerange(vstart, vend);
 }
@@ -99,19 +102,25 @@ kalloc(void)
     kmem.freelist = r->next;
   } else {
     //there's no physical memory. so we have to swap it.
-
+    r = reclaim();
   }
   if(kmem.use_lock)
     release(&kmem.lock);
   return (char*)r;
 }
 
-void function() {
-  for(int i=0; i<PHYSTOP/PGSIZE; i++) {
-    //pseudo
-    /*
-    if pages[i].vaddr를 봤을 때 -> walkpagedir로? pte_A가 0이라면, LRU에 넣는다.
-    
-    */
+char* reclaim() {
+  for(int i=0; i<num_lru_pages; i++) {
+    struct page *cur = &pages[i];
+    pte_t* now_pte = walkpgdir(cur->pgdir,cur->vaddr,0);
+    if(now_pte) {
+      cprintf("IDONTKNOW");
+    } else {
+      if(*now_pte&PTE_A) {
+        swapwrite(V2P(now_pte),);
+      } else {
+        
+      }
+    }
   }
 }
