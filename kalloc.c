@@ -39,7 +39,6 @@ void
 kinit1(void *vstart, void *vend)
 {
   initlock(&kmem.lock, "kmem");
-  initlock(&pages_lock, "pages_lock");
   kmem.use_lock = 0;
   freerange(vstart, vend);
 }
@@ -95,7 +94,7 @@ char* reclaim() {
       if(*now_pte&PTE_A) {
         *now_pte &= ~PTE_A; //clear PTE_A;
       } else {
-        
+
       }
     }
     cur = cur->next;

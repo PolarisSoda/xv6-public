@@ -21,7 +21,7 @@ void
 seginit(void)
 {
   struct cpu *c;
-
+  initlock(&pages_lock, "pages_lock");
   // Map "logical" addresses to virtual addresses using identity map.
   // Cannot share a CODE descriptor for both kernel and user
   // because it would have to have DPL_USR, but the CPU forbids
