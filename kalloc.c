@@ -106,11 +106,11 @@ int reclaim() {
     }
     cur = cur->next;
   }
-  SUCCESS:
+  //SUCCESS:
   if(use_pages_lock) release(&pages_lock);
   return 1;
   
-  FAIL:
+  //FAIL:
   if(use_pages_lock) release(&pages_lock);
   return 0;
 }
