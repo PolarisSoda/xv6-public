@@ -62,28 +62,6 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
 // physical addresses starting at pa. va and size might not
 // be page-aligned.
 
-// ONLY MAPPAGES MAKE PAGETABLES RIGHT?
-// SO WE WILL MAKE IT TO GIVE INFO TO PAGE TABLES
-// WE ASSUME THAT 
-/*
-struct page{
-	struct page *next;
-	struct page *prev;
-	pde_t *pgdir;
-	char *vaddr;
-};
-struct page pages[PHYSTOP/PGSIZE];
-struct page *page_lru_head; 
-int num_free_pages;
-int num_lru_pages;
-*/
-
-//LOGIC
-//만들어질때 page에 등록된다.
-//만약 PTE_U라면, lru에도 넣어준다.
-/*
-어디선가는 이게 지워지고 있으므로, 
-*/
 int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
   char *a, *last;
   pte_t *pte;
@@ -120,9 +98,7 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
         if(use_pages_lock) release(&pages_lock); //critical section ends.
       }
     }
-    
-    if(a == last)
-      break;
+    if(a == last) break;
     a += PGSIZE;
     pa += PGSIZE;
     

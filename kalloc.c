@@ -29,8 +29,7 @@ struct page pages[PHYSTOP/PGSIZE] = {0,}; //이건 그냥 page를 관리하는 �
 struct page *page_lru_head; //이게 LRU PAGE들을 관리하는 Circulat LIST.
 int num_free_pages = PHYSTOP/PGSIZE;
 int num_lru_pages = 0;
-
-
+char swap_bit[SWAPMAX/64];
 // Initialization happens in two phases.
 // 1. main() calls kinit1() while still using entrypgdir to place just
 // the pages mapped by entrypgdir on free list.
@@ -66,9 +65,7 @@ freerange(void *vstart, void *vend)
 // which normally should have been returned by a
 // call to kalloc().  (The exception is when
 // initializing the allocator; see kinit above.)
-void
-kfree(char *v)
-{
+void kfree(char *v) {
   struct run *r;
 
   if((uint)v % PGSIZE || v < end || V2P(v) >= PHYSTOP)
@@ -86,23 +83,35 @@ kfree(char *v)
     release(&kmem.lock);
 }
 
-char* reclaim() {
-  acquire(&pages_lock);
+int reclaim() {
+  if(use_pages_lock) acquire(&pages_lock);
   struct page *cur = page_lru_head;
   for(int i=0; i<num_lru_pages; i++) {
     pte_t* now_pte = walkpgdir(cur->pgdir,cur->vaddr,0);
-    if(!now_pte) {
-      cprintf("IDONTKNOW");
-    } else {
-      if(*now_pte&PTE_A) {
-        *now_pte &= ~PTE_A; //clear PTE_A;
-      } else {
+    if(!now_pte) panic("ERROR OCCURED"); //없을수가 있나?
 
+    if(*now_pte&PTE_A) {
+      *now_pte &= ~PTE_A; //clear PTE_A;
+    } else {
+      char* phy_addr = (char*)P2V(PTE_ADDR(*now_pte));
+      for(int i=0; i<SWAPMAX/8; i++) {
+        if(!swap_bit[i]) {
+          swap_bit[i] = 1;
+          swapwrite(phy_addr,i);
+          *now_pte &= ~PTE_P;
+          break;
+        }
       }
+      kfree(phy_addr);
     }
     cur = cur->next;
   }
-  release(&pages_lock);
+  SUCCESS:
+  if(use_pages_lock) release(&pages_lock);
+  return 1;
+  
+  FAIL:
+  if(use_pages_lock) release(&pages_lock);
   return 0;
 }
 // Allocate one 4096-byte page of physical memory.
@@ -110,20 +119,18 @@ char* reclaim() {
 // Returns 0 if the memory cannot be allocated.
 char* kalloc(void) {
   struct run *r;
-  if(use_pages_lock) acquire(&pages_lock);
-  if(use_pages_lock) release(&pages_lock);
 
 //try_again:
   if(kmem.use_lock)
     acquire(&kmem.lock);
+  RETRY:
   r = kmem.freelist;
-//  if(!r && reclaim())
-//	  goto try_again;
   if(r) {
     kmem.freelist = r->next;
   } else {
     //there's no physical memory. so we have to swap it.
-    return reclaim();
+    if(!reclaim()) panic("OOM!!!!!!!");
+    goto RETRY;
   }
   if(kmem.use_lock)
     release(&kmem.lock);
