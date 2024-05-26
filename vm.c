@@ -292,7 +292,6 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 int
 deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 {
-  cprintf("DEALLOCED\n");
   pte_t *pte;
   uint a, pa;
 

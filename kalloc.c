@@ -156,11 +156,12 @@ char* kalloc(void) {
     kmem.freelist = r->next;
   } else {
     //there's no physical memory. so we have to swap it.
-    if(kmem.use_lock)
+    cprintf("reclaim!!!!\n");
     if(!reclaim()) {
       cprintf("OOM\n");
       return 0;
     }
+    cprintf("reclaim ended!\n");
     goto RETRY;
   }
   if(kmem.use_lock)
