@@ -129,6 +129,7 @@ int reclaim() {
     }
     page_lru_head = page_lru_head->next;
   }
+  cprintf("???????????");
   if(use_pages_lock) release(&pages_lock);
   return 0;
 
