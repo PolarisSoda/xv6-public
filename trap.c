@@ -85,7 +85,7 @@ trap(struct trapframe *tf)
     break;
   case T_PGFLT:
     cprintf("page_fault_occured at %x\n",rcr2());
-
+    break;
     uint pft_addr = rcr2();
     pte_t *pte = walkpgdir(myproc()->pgdir,(void*)pft_addr,0);
     uint offset = (PTE_ADDR(*pte) >> PTXSHIFT);
