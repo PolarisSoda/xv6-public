@@ -95,7 +95,7 @@ char* reclaim() {
       if(*now_pte&PTE_A) {
         *now_pte &= ~PTE_A; //clear PTE_A;
       } else {
-        //swapwrite(V2P(now_pte),);
+        
       }
     }
     cur = cur->next;
@@ -107,8 +107,6 @@ char* reclaim() {
 // Returns a pointer that the kernel can use.
 // Returns 0 if the memory cannot be allocated.
 char* kalloc(void) {
-  acquire(&pages_lock);
-  release(&pages_lock);
   struct run *r;
 
 //try_again:

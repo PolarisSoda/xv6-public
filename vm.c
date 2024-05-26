@@ -6,12 +6,14 @@
 #include "mmu.h"
 #include "proc.h"
 #include "elf.h"
+#include "spinlock.h"
 
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
 extern struct page pages[PHYSTOP/PGSIZE];
 extern struct page *page_lru_head;
 extern int num_lru_pages;
+struct spinlock pages_lock;
 
 // Set up CPU's kernel segment descriptors.
 // Run once on entry on each CPU.
@@ -99,6 +101,7 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
       uint idx = pa/PGSIZE;
       pages[idx].pgdir = pgdir;
       pages[idx].vaddr = a; //walkpgdir로 접근해라.
+      acquire(&pages_lock);
       if(*pte & PTE_U) {
         struct page *cur = &pages[idx];
         if(!page_lru_head) {
@@ -114,6 +117,7 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
         }
         num_lru_pages++;
       }
+      release(&pages_lock);
     }
     
     if(a == last)
