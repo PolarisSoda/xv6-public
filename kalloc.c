@@ -86,7 +86,7 @@ kfree(char *v)
 
 char* reclaim() {
   acquire(&pages_lock);
-  struct page *cur = num_lru_pages;
+  struct page *cur = page_lru_head;
   for(int i=0; i<num_lru_pages; i++) {
     pte_t* now_pte = walkpgdir(cur->pgdir,cur->vaddr,0);
     if(!now_pte) {
