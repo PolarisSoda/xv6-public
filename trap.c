@@ -11,6 +11,12 @@
 // Interrupt descriptor table (shared by all CPUs).
 struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
+extern struct page pages[PHYSTOP/PGSIZE];
+extern struct page *page_lru_head;
+extern int num_lru_pages;
+extern struct spinlock pages_lock;
+extern int use_pages_lock;
+extern char swap_bit[SWAPMAX/64+1];
 struct spinlock tickslock;
 uint ticks;
 
@@ -79,8 +85,57 @@ trap(struct trapframe *tf)
     break;
   case T_PGFLT:
     cprintf("page_fault_occured at %x\n",rcr2());
-    //accessing swapped page will occur page fault.
+
+    uint pft_addr = rcr2();
+    pte_t *pte = walkpgdir(myproc()->pgdir,(void*)pft_addr,0);
+    uint offset = (PTE_ADDR(*pte) >> PTXSHIFT);
+    uint perm = PTE_FLAGS(*pte);
+
+    if(!offset) panic("T_PGFLT\n"); //page_fault가 났을 때 offset이 0이면 진짜 page_fault_occur이다.
     
+    char *new_space = kalloc(); //새로운 공간 할당.
+    swapread(new_space,(--offset)<<3); //이거 공간 초기화는 어케하냐.
+
+    *pte = V2P(new_space) | perm | PTE_P; //pte를 새로운 페이지와 권환과 PTE_P로 채운다.
+    swap_bit[offset] = 0; //swap 끝났으니까 bit을 0으로 채워준다.
+    int idx = V2P(new_space)/PGSIZE;
+    if(idx < PHYSTOP/PGSIZE) {
+      struct page *cur = &pages[idx];
+      cur->pgdir = myproc()->pgdir;
+      cur->vaddr = (char*)pft_addr;
+      if(*pte&PTE_U) {
+        if(!page_lru_head) {
+          page_lru_head = cur;
+          page_lru_head->next = cur, page_lru_head->prev = cur;
+        } else {
+          cur->next = page_lru_head;
+          cur->prev = page_lru_head->prev;
+          page_lru_head->prev = cur;
+          page_lru_head = cur;
+        }
+        num_lru_pages++;
+      }
+    }
+
+    if(*pte&PTE_U) {
+      //만약 user라면, 정상적이라면 user겠지만.
+      
+      struct page *cur = &pages[idx];
+      if(use_pages_lock) acquire(&pages_lock); //critical section starts.
+      if(!page_lru_head) {
+        //it means lru list is empty.
+        page_lru_head = cur;
+        page_lru_head->next = cur, page_lru_head->prev = cur;
+      } else {
+        //lru has something.
+        cur->next = page_lru_head;
+        cur->prev = page_lru_head->prev;
+        page_lru_head->prev = cur;
+        page_lru_head = cur;
+      }
+      num_lru_pages++;
+    }
+    //accessing swapped page will occur page fault.
     break;
 
   //PAGEBREAK: 13

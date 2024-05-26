@@ -29,7 +29,7 @@ struct page pages[PHYSTOP/PGSIZE] = {0,}; //이건 그냥 page를 관리하는 �
 struct page *page_lru_head; //이게 LRU PAGE들을 관리하는 Circulat LIST.
 int num_free_pages = PHYSTOP/PGSIZE;
 int num_lru_pages = 0;
-char swap_bit[SWAPMAX/64];
+char swap_bit[SWAPMAX/64+1];
 // Initialization happens in two phases.
 // 1. main() calls kinit1() while still using entrypgdir to place just
 // the pages mapped by entrypgdir on free list.
@@ -114,7 +114,7 @@ int reclaim() {
         if(!swap_bit[i]) {
           swapwrite(phy_addr,i<<3); //swap에 쓴다.
           swap_bit[i] = 0xFF; //썼다고 표시한다
-          *now_pte = (PTE_FLAGS(*now_pte) & (~PTE_P)) | (i<<PTXSHIFT); //기존의 PTE에서 PPN대신 OFFSET으로 채워넣고, PTE_P 비트를 제거한다.
+          *now_pte = (PTE_FLAGS(*now_pte) & (~PTE_P)) | ((i+1)<<PTXSHIFT); //기존의 PTE에서 PPN대신 OFFSET으로 채워넣고, PTE_P 비트를 제거한다.
           nl_kfree(phy_addr); //메모리에서 내용을 지운다.
           page_lru_head->prev->next = page_lru_head->next;
           page_lru_head->next->prev = page_lru_head->prev;
