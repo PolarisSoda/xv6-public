@@ -24,6 +24,7 @@ struct {
 } kmem;
 
 struct spinlock pages_lock;
+int pl_lock;
 struct page pages[PHYSTOP/PGSIZE] = {0,}; //이건 그냥 page를 관리하는 관리체.
 struct page *page_lru_head; //이게 LRU PAGE들을 관리하는 Circulat LIST.
 int num_free_pages = PHYSTOP/PGSIZE;
@@ -40,6 +41,7 @@ kinit1(void *vstart, void *vend)
 {
   initlock(&kmem.lock, "kmem");
   initlock(&pages_lock, "pages_lock");
+  pl_lock = 1;
   kmem.use_lock = 0;
   freerange(vstart, vend);
 }
@@ -107,9 +109,6 @@ char* reclaim() {
 // Returns a pointer that the kernel can use.
 // Returns 0 if the memory cannot be allocated.
 char* kalloc(void) {
-    acquire(&pages_lock);
-  
-    release(&pages_lock);
   struct run *r;
 
 //try_again:
