@@ -24,7 +24,7 @@ struct {
 } kmem;
 
 struct spinlock pages_lock;
-int pl_lock;
+int use_pages_lock;
 struct page pages[PHYSTOP/PGSIZE] = {0,}; //이건 그냥 page를 관리하는 관리체.
 struct page *page_lru_head; //이게 LRU PAGE들을 관리하는 Circulat LIST.
 int num_free_pages = PHYSTOP/PGSIZE;

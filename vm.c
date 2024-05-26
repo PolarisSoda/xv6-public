@@ -14,7 +14,7 @@ extern struct page pages[PHYSTOP/PGSIZE];
 extern struct page *page_lru_head;
 extern int num_lru_pages;
 extern struct spinlock pages_lock;
-extern int pl_lock;
+extern int use_pages_lock;
 
 // Set up CPU's kernel segment descriptors.
 // Run once on entry on each CPU.
@@ -98,12 +98,14 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
 
     //cause we will not consider about PHYSTOP ~ DEVSPACE
     if(pa < PHYSTOP) {
+      cprintf("%d\n",use_pages_lock);
       uint idx = pa/PGSIZE;
       pages[idx].pgdir = pgdir;
       pages[idx].vaddr = a; //walkpgdir로 접근해라.
       if(*pte & PTE_U) {
         struct page *cur = &pages[idx];
-        if(pl_lock) acquire(&pages_lock);
+
+        if(use_pages_lock) acquire(&pages_lock); //critical section starts.
         if(!page_lru_head) {
           //it means lru list is empty.
           page_lru_head = cur;
@@ -116,8 +118,7 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
           page_lru_head = cur;
         }
         num_lru_pages++;
-        cprintf("%d\n",pl_lock);
-        if(pl_lock) release(&pages_lock);
+        if(use_pages_lock) release(&pages_lock); //critical section ends.
       }
     }
     
