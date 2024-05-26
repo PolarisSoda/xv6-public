@@ -131,7 +131,7 @@ int reclaim() {
   return 0;
 
   SUCCESS:
-  if(use_pages_lock) release(&pages_lock);
+  //if(use_pages_lock) release(&pages_lock);
   return 1;
   
 }
