@@ -41,7 +41,6 @@ kinit1(void *vstart, void *vend)
 {
   initlock(&kmem.lock, "kmem");
   initlock(&pages_lock, "pages_lock");
-  pl_lock = 1;
   kmem.use_lock = 0;
   freerange(vstart, vend);
 }
@@ -51,6 +50,7 @@ kinit2(void *vstart, void *vend)
 {
   freerange(vstart, vend);
   kmem.use_lock = 1;
+  use_pages_lock = 1;
 }
 
 void
