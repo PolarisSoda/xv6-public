@@ -85,30 +85,32 @@ kfree(char *v)
 }
 
 char* reclaim() {
+  acquire(&pages_lock);
+  struct page *cur = num_lru_pages;
   for(int i=0; i<num_lru_pages; i++) {
-    struct page *cur = &pages[i];
     pte_t* now_pte = walkpgdir(cur->pgdir,cur->vaddr,0);
-    if(now_pte) {
+    if(!now_pte) {
       cprintf("IDONTKNOW");
     } else {
       if(*now_pte&PTE_A) {
-        //wapwrite(V2P(now_pte),);
+        *now_pte &= ~PTE_A; //clear PTE_A;
       } else {
-        
+        //swapwrite(V2P(now_pte),);
       }
     }
+    cur = cur->next;
   }
+  release(&pages_lock);
   return 0;
 }
 // Allocate one 4096-byte page of physical memory.
 // Returns a pointer that the kernel can use.
 // Returns 0 if the memory cannot be allocated.
-char*
-kalloc(void)
-{
+char* kalloc(void) {
   struct run *r;
 
 //try_again:
+  acquire(&pages_lock);
   if(kmem.use_lock)
     acquire(&kmem.lock);
   r = kmem.freelist;
@@ -122,6 +124,7 @@ kalloc(void)
   }
   if(kmem.use_lock)
     release(&kmem.lock);
+  release(&pages_lock);
   return (char*)r;
 }
 
