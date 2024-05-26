@@ -30,6 +30,7 @@ struct page *page_lru_head; //이게 LRU PAGE들을 관리하는 Circulat LIST.
 int num_lru_pages = 0;
 int num_free_pages = PHYSTOP/PGSIZE;
 char swap_bit[SWAPMAX/64+1];
+
 // Initialization happens in two phases.
 // 1. main() calls kinit1() while still using entrypgdir to place just
 // the pages mapped by entrypgdir on free list.

@@ -296,7 +296,6 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
     if(!pte)
       a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
     else if((*pte & PTE_P) != 0){
-      cprintf("%x\n",&pte);
       pa = PTE_ADDR(*pte);
       if(pa == 0)
         panic("kfree");
@@ -321,7 +320,6 @@ freevm(pde_t *pgdir)
   for(i = 0; i < NPDENTRIES; i++){
     if(pgdir[i] & PTE_P){
       char * v = P2V(PTE_ADDR(pgdir[i]));
-      //cprintf("%x\n",(int)v);
       kfree(v);
     }
   }
