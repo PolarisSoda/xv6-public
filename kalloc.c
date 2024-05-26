@@ -110,7 +110,6 @@ char* kalloc(void) {
   struct run *r;
 
 //try_again:
-  acquire(&pages_lock);
   if(kmem.use_lock)
     acquire(&kmem.lock);
   r = kmem.freelist;
@@ -124,7 +123,6 @@ char* kalloc(void) {
   }
   if(kmem.use_lock)
     release(&kmem.lock);
-  release(&pages_lock);
   return (char*)r;
 }
 
