@@ -21,7 +21,6 @@ void
 seginit(void)
 {
   struct cpu *c;
-  initlock(&pages_lock, "pages_lock");
   // Map "logical" addresses to virtual addresses using identity map.
   // Cannot share a CODE descriptor for both kernel and user
   // because it would have to have DPL_USR, but the CPU forbids
@@ -101,8 +100,6 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
       uint idx = pa/PGSIZE;
       pages[idx].pgdir = pgdir;
       pages[idx].vaddr = a; //walkpgdir로 접근해라.
-      acquire(&pages_lock);
-      release(&pages_lock);
       if(*pte & PTE_U) {
         struct page *cur = &pages[idx];
         if(!page_lru_head) {

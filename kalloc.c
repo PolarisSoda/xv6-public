@@ -39,6 +39,7 @@ void
 kinit1(void *vstart, void *vend)
 {
   initlock(&kmem.lock, "kmem");
+  initlock(&pages_lock, "pages_lock");
   kmem.use_lock = 0;
   freerange(vstart, vend);
 }
@@ -110,7 +111,7 @@ char* kalloc(void) {
 
 //try_again:
   if(kmem.use_lock)
-    acquire(&kmem.lock);
+    acquire(&pages_lock);
   r = kmem.freelist;
 //  if(!r && reclaim())
 //	  goto try_again;
@@ -121,7 +122,7 @@ char* kalloc(void) {
     return reclaim();
   }
   if(kmem.use_lock)
-    release(&kmem.lock);
+    release(&pages_lock);
   return (char*)r;
 }
 
