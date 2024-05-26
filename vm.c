@@ -310,6 +310,7 @@ int deallocuvm(pde_t *pgdir, uint oldsz, uint newsz) {
         uint offset = (PTE_ADDR(*pte) >> PTXSHIFT);
         if(offset != 0) {
           cprintf("%d\n",offset-1);
+          *pte = 0;
         }
       }
     }
