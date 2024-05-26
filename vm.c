@@ -53,7 +53,7 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
     // The permissions here are overly generous, but they can
     // be further restricted by the permissions in the page table
     // entries, if necessary.
-    *pde = V2P(pgtab) | PTE_W | PTE_U;
+    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
   }
   return &pgtab[PTX(va)];
 }
@@ -77,6 +77,7 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
 
     //cause we will not consider about PHYSTOP ~ DEVSPACE
     if(pa < PHYSTOP) {
+      *pte &= ~PTE_P;
       uint idx = pa/PGSIZE;
       pages[idx].pgdir = pgdir;
       pages[idx].vaddr = a; //walkpgdir로 접근해라.
