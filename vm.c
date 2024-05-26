@@ -16,6 +16,11 @@ extern struct page *page_lru_head;
 extern int num_lru_pages;
 extern struct spinlock pages_lock;
 extern int use_pages_lock;
+extern struct {
+  struct spinlock lock;
+  int use_lock;
+  struct run *freelist;
+} kmem;
 
 // Set up CPU's kernel segment descriptors.
 // Run once on entry on each CPU.
@@ -83,7 +88,9 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
       pages[idx].vaddr = a; //walkpgdir로 접근해라.
       if(*pte & PTE_U) {
         struct page *cur = &pages[idx];
-        if(use_pages_lock) acquire(&pages_lock); //critical section starts.
+        if(kmem.use_lock)
+          acquire(&kmem.lock);
+        //if(use_pages_lock) acquire(&pages_lock); //critical section starts.
         if(!page_lru_head) {
           //it means lru list is empty.
           page_lru_head = cur;
@@ -96,7 +103,9 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
           page_lru_head = cur;
         }
         num_lru_pages++;
-        if(use_pages_lock) release(&pages_lock); //critical section ends.
+        if(kmem.use_lock)
+          release(&kmem.lock);
+        //if(use_pages_lock) release(&pages_lock); //critical section ends.
       }
     }
     if(a == last) break;

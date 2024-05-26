@@ -101,8 +101,9 @@ void nl_kfree(char *v) {
 int reclaim() {
   //만약 free할 공간이 없다면, 0을 return
   //찾았으면 하나 evict하고 1을 return
-  if(use_pages_lock) acquire(&pages_lock);
-
+  //if(use_pages_lock) acquire(&pages_lock);
+  if(kmem.use_lock)
+    acquire(&kmem.lock);
   for(int i=0; i<num_lru_pages; i++) {
     pte_t* now_pte = walkpgdir(page_lru_head->pgdir,page_lru_head->vaddr,0);
     if(!now_pte) panic("reclaim"); //없을수가 있나?
@@ -128,11 +129,15 @@ int reclaim() {
     }
     page_lru_head = page_lru_head->next;
   }
-  if(use_pages_lock) release(&pages_lock);
+  if(kmem.use_lock)
+    release(&kmem.lock);
+  //if(use_pages_lock) release(&pages_lock);
   return 0;
 
   SUCCESS:
-  if(use_pages_lock) release(&pages_lock);
+  if(kmem.use_lock)
+    release(&kmem.lock);
+  //if(use_pages_lock) release(&pages_lock);
   return 1;
   
 }
