@@ -78,7 +78,7 @@ trap(struct trapframe *tf)
     lapiceoi();
     break;
   case T_PGFLT:
-    cprintf("hello\n");
+    cprintf("page_fault_occured at %x\n",rcr2());
     //accessing swapped page will occur page fault.
     
     break;

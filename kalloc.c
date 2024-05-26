@@ -84,6 +84,7 @@ void kfree(char *v) {
 }
 
 void nl_kfree(char *v) {
+  //lock없는 kfree.
   struct run *r;
 
   if((uint)v % PGSIZE || v < end || V2P(v) >= PHYSTOP)
@@ -115,6 +116,10 @@ int reclaim() {
           swap_bit[i] = 0xFF; //썼다고 표시한다
           *now_pte = (PTE_FLAGS(*now_pte) & (~PTE_P)) | (i<<PTXSHIFT); //기존의 PTE에서 PPN대신 OFFSET으로 채워넣고, PTE_P 비트를 제거한다.
           nl_kfree(phy_addr); //메모리에서 내용을 지운다.
+          page_lru_head->prev->next = page_lru_head->next;
+          page_lru_head->next->prev = page_lru_head->prev;
+          page_lru_head = page_lru_head->next; //LRU에서 제거한다.
+          num_lru_pages--;
           goto SUCCESS;
         }
       }
