@@ -104,18 +104,17 @@ int reclaim() {
 
   for(int i=0; i<num_lru_pages; i++) {
     pte_t* now_pte = walkpgdir(page_lru_head->pgdir,page_lru_head->vaddr,0);
-    if(!now_pte) goto NEXT;
-    if((*now_pte&PTE_P) == 0) goto NEXT;
+    if(!now_pte || (*now_pte&PTE_P) == 0) goto NEXT;
 
     if(*now_pte&PTE_A) {
       *now_pte &= ~PTE_A; //clear PTE_A;
     } else {
       char* phy_addr = (char*)P2V(PTE_ADDR(*now_pte));
       for(int j=0; j<SWAPMAX/64; j++) {
-        if(!swap_bit[j]) {
+        if(swap_bit[j] == 0) {
           swapwrite(phy_addr,j<<3); //swap에 쓴다.
           swap_bit[j] = 0xFF; //썼다고 표시한다
-          *now_pte = (PTE_FLAGS(*now_pte) & (~PTE_P)) | ((j+1)<<PTXSHIFT); //기존의 PTE에서 PPN대신 OFFSET으로 채워넣고, PTE_P 비트를 제거한다.
+          *now_pte = (PTE_FLAGS(*now_pte) & (~PTE_P)) | (j<<PTXSHIFT); //기존의 PTE에서 PPN대신 OFFSET으로 채워넣고, PTE_P 비트를 제거한다.
           nl_kfree(phy_addr); //메모리에서 내용을 지운다.
           if(num_lru_pages == 1) {
             page_lru_head = 0;
@@ -149,6 +148,7 @@ char* kalloc(void) {
   struct run *r;
 
   if(kmem.use_lock) acquire(&kmem.lock);
+
   RETRY:
   r = kmem.freelist;
   if(r) {
@@ -159,7 +159,6 @@ char* kalloc(void) {
       if(kmem.use_lock) release(&kmem.lock);
       return 0;
     }
-    cprintf("reclaim ended!\n");
     goto RETRY;
   }
   if(kmem.use_lock) release(&kmem.lock);
