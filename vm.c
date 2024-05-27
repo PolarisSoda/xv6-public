@@ -401,7 +401,9 @@ void clearpteu(pde_t *pgdir, char *uva) {
   if(*pte&PTE_U && *pte&PTE_P) {
     uint pa = PTE_ADDR(*pte);
     uint idx = pa/PGSIZE;
+    if(use_pages_lock) acquire(&pages_lock); //critical section starts.
     remove_list(idx);
+    if(use_pages_lock) release(&pages_lock); //critical section ends.
   }
   *pte &= ~PTE_U;
 }
