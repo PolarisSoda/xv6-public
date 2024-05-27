@@ -87,7 +87,6 @@ void kfree(char *v) {
 
 //no locking needed kfree.
 void nl_kfree(char *v) {
-  //lock없는 kfree.
   struct run *r;
 
   if((uint)v % PGSIZE || v < end || V2P(v) >= PHYSTOP)
@@ -101,14 +100,11 @@ void nl_kfree(char *v) {
 }
 
 int reclaim() {
-  //만약 free할 공간이 없다면, 0을 return
-  //찾았으면 하나 evict하고 1을 return
   if(use_pages_lock) acquire(&pages_lock);
 
   for(int i=0; i<num_lru_pages; i++) {
-    cprintf("%x\n",*page_lru_head->vaddr);
     pte_t* now_pte = walkpgdir(page_lru_head->pgdir,page_lru_head->vaddr,0);
-    if(!now_pte) panic("lru holds null"); //없을수가 있나?
+    if(!now_pte) continue;
 
     if(*now_pte&PTE_P) continue;
     if(*now_pte&PTE_A) {
