@@ -48,6 +48,7 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
     //pde가 존재하고 실제로 메모리에 있는 경우.
     pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
   } else if(!(*pde&PTE_P)) {
+    goto here;
     //pde가 존재하지만 현재 메모리에 없는 경우.
     uint offset = PTE_ADDR(*pde) >> PTXSHIFT;
     char* mem = kalloc(); //새롭게 할당해서
@@ -57,6 +58,7 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
     *pde = V2P(mem) | PTE_P | PTE_W | PTE_U; //pde를 설정한다.
     pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
   } else {
+    here:
     if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
       return 0;
     memset(pgtab, 0, PGSIZE);
