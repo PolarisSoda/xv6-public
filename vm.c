@@ -78,13 +78,12 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
 
     //cause we will not consider about PHYSTOP ~ DEVSPACE
     if(pa < PHYSTOP) {
+      if(use_pages_lock) acquire(&pages_lock); //critical section starts.
       uint idx = pa/PGSIZE;
       pages[idx].pgdir = pgdir;
       pages[idx].vaddr = a; //walkpgdir로 접근해라.
       if(*pte & PTE_U) {
-        struct page *cur = &pages[idx];
-
-        if(use_pages_lock) acquire(&pages_lock); //critical section starts.
+        struct page *cur = &pages[idx];  
         if(!page_lru_head) {
           //it means lru list is empty.
           page_lru_head = cur;
@@ -97,10 +96,8 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
           page_lru_head->prev = cur;
         }
         num_lru_pages++;
-        if(use_pages_lock) release(&pages_lock); //critical section ends.
-        
       }
-      
+      if(use_pages_lock) release(&pages_lock); //critical section ends.
     }
     
     if(a == last) break;
@@ -350,9 +347,7 @@ int deallocuvm(pde_t *pgdir, uint oldsz, uint newsz) {
 
 // Free a page table and all the physical memory pages
 // in the user part.
-void
-freevm(pde_t *pgdir)
-{
+void freevm(pde_t *pgdir) {
   uint i;
 
   if(pgdir == 0)
