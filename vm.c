@@ -321,7 +321,6 @@ int deallocuvm(pde_t *pgdir, uint oldsz, uint newsz) {
       } else {
         uint offset = (PTE_ADDR(*pte) >> PTXSHIFT);
         if(offset != 0) {
-          cprintf("%d\n",offset-1);
           swapwrite(0,(offset-1)<<3);
           swap_bit[offset-1] = 0;
           *pte = 0;
