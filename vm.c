@@ -397,8 +397,12 @@ void freevm(pde_t *pgdir) {
 void clearpteu(pde_t *pgdir, char *uva) {
   pte_t *pte;
   pte = walkpgdir(pgdir, uva, 0);
-  if(pte == 0)
-    panic("clearpteu");
+  if(pte == 0) panic("clearpteu");
+  if(*pte&PTE_U && *pte&PTE_P) {
+    uint pa = PTE_ADDR(*pte);
+    uint idx = pa/PGSIZE;
+    remove_list(idx);
+  }
   *pte &= ~PTE_U;
 }
 
