@@ -45,9 +45,11 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
 
   pde = &pgdir[PDX(va)];
   if(*pde & PTE_P) {
+    //pde가 존재하고 실제로 메모리에 있는 경우.
     pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
   } else if(!(*pde&PTE_P)) {
-    uint offset = (PTE_ADDR(*pde) >> PTXSHIFT);
+    //pde가 존재하지만 현재 메모리에 없는 경우.
+    uint offset = PTE_ADDR(*pde) >> PTXSHIFT;
     if(offset != 0) {
       char* mem = kalloc();
       swapread(mem,(offset-1)<<3);
