@@ -39,6 +39,7 @@ seginit(void)
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
+/*
 pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
   pde_t *pde;
   pte_t *pgtab;
@@ -58,8 +59,6 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
     swap_bit[offset] = 0; //swapbit를 비워주고.
     *pde = V2P(mem) | PTE_P | PTE_W | PTE_U; //pde를 설정한다.
     pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
-
-    
   } else {
     if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
       return 0;
@@ -68,8 +67,8 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
   }
   return &pgtab[PTX(va)];
 }
+*/
 
-/*
 pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
   pde_t *pde;
   pte_t *pgtab;
@@ -89,7 +88,6 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
   }
   return &pgtab[PTX(va)];
 }
-*/
 
 // Create PTEs for virtual addresses starting at va that refer to
 // physical addresses starting at pa. va and size might not
