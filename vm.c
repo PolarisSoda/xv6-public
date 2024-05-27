@@ -54,11 +54,11 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
     if(mem == 0) return 0;
     char temp[4096] = {0,};
     swapread(mem,offset<<3); //mem에다 swap했던 것을 쓴다.
-    swapwrtie(temp,offset<<3); //swap공간을 비워준다.
+    swapwrite(temp,offset<<3); //swap공간을 비워준다.
     swap_bit[offset] = 0; //swapbit를 비워주고.
     *pde = V2P(mem) | PTE_P | PTE_W | PTE_U; //pde를 설정한다.
     pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
-    
+
     if(use_pages_lock) acquire(&pages_lock);
     uint idx = V2P(mem)/PGSIZE;
     pages[idx].pgdir = pgdir;
