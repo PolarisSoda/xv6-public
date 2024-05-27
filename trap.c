@@ -86,11 +86,6 @@ trap(struct trapframe *tf)
   case T_PGFLT:
     cprintf("page_fault_occured at %x\n",rcr2());
     uint pft_addr = PGROUNDDOWN(rcr2());
-    if(pft_addr == 0x80000000) {
-      cprintf("Page fault at 0x80000000, killing process %s\n", myproc()->name);
-      myproc()->killed = 1;
-      break;
-    }
     
 
     pte_t *pte = walkpgdir(myproc()->pgdir,(void*)pft_addr,0);
