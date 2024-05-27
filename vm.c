@@ -77,8 +77,8 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
       *pde = V2P(mem) | flags | PTE_P;
       pgtab = (pte_t*)P2V(PTE_ADDR(*pde));  
 
-      if(use_pages_lock) acquire(&pages_lock);
       uint idx = V2P(mem)/PGSIZE;
+      if(use_pages_lock) acquire(&pages_lock);
       pages[idx].pgdir = pgdir;
       pages[idx].vaddr = (char*)va; //walkpgdir로 접근해라.
       if(*pde&PTE_U) insert_list(idx);
@@ -133,25 +133,12 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
 
     //cause we will not consider about PHYSTOP ~ DEVSPACE
     if(pa < PHYSTOP) {
-      if(use_pages_lock) acquire(&pages_lock); //critical section starts.
+      
       uint idx = pa/PGSIZE;
+      if(use_pages_lock) acquire(&pages_lock); //critical section starts.
       pages[idx].pgdir = pgdir;
       pages[idx].vaddr = a; //walkpgdir로 접근해라.
-      if(*pte & PTE_U) {
-        struct page *cur = &pages[idx];  
-        if(!page_lru_head) {
-          //it means lru list is empty.
-          page_lru_head = cur;
-          page_lru_head->next = cur, page_lru_head->prev = cur;
-        } else {
-          //lru has something.
-          cur->next = page_lru_head;
-          cur->prev = page_lru_head->prev;
-          cur->prev->next = cur;
-          page_lru_head->prev = cur;
-        }
-        num_lru_pages++;
-      }
+      if(*pte & PTE_U) insert_list(idx);
       if(use_pages_lock) release(&pages_lock); //critical section ends.
     }
     
