@@ -48,25 +48,24 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
   if(*pde & PTE_P) {
     //pde가 존재하고 실제로 메모리에 있는 경우.
     pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
-  } else if(!(*pde&PTE_P)) {
-    //pde가 존재하지만 현재 메모리에 없는 경우.
-    uint offset = PTE_ADDR(*pde) >> PTXSHIFT;
-    if(--offset == 0 || swap_bit[offset] == 0) goto others;
-    char* mem = kalloc(); //새롭게 할당해서
-    if(mem == 0) return 0;
-    char temp[4096] = {0,};
-    swapread(mem,offset<<3); //mem에다 swap했던 것을 쓴다.
-    swapwrite(temp,offset<<3);
-    swap_bit[offset] = 0; //swapbit를 비워주고.
-    *pde = V2P(mem) | PTE_P | PTE_W | PTE_U; //pde를 설정한다.
-    pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
   } else {
-    others:
-    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
-      return 0;
-    memset(pgtab, 0, PGSIZE);
-    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
-  }
+    uint offset = PTE_ADDR(*pde) >> PTXSHIFT;
+    if(offset-- != 0 && swap_bit[offset] != 0) {
+      char* mem = kalloc();
+      if(mem == 0) {
+        cprintf("walkpgdir failed\n");
+        return 0;
+      }
+      swapread(mem,offset<<3);
+      swap_bit[offset] = 0;
+      *pde = V2P(mem) | PTE_P | PTE_W | PTE_U;
+      pgtab = (pte_t*)P2V(PTE_ADDR(*pde));  
+    } else {
+      if(!alloc || (pgtab = (pte_t*)kalloc()) == 0) return 0;
+      memset(pgtab, 0, PGSIZE);
+      *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
+    }
+  }  
   return &pgtab[PTX(va)];
 }
 
