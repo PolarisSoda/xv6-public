@@ -385,10 +385,6 @@ void freevm(pde_t *pgdir) {
   for(i = 0; i < NPDENTRIES; i++){
     if(pgdir[i] & PTE_P){
       uint pa = PTE_ADDR(pgdir[i]);
-      uint idx = pa/PGSIZE;
-      if(use_pages_lock) acquire(&pages_lock); //critical section starts.
-      if(pgdir[i]&PTE_U) remove_list(idx);
-      if(use_pages_lock) release(&pages_lock); //critical section ends.
       char * v = P2V(pa);
       kfree(v);
     } else {
