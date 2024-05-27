@@ -52,7 +52,7 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
       char* mem = kalloc();
       swapread(mem,(offset-1)<<3);
       swap_bit[offset-1] = 0;
-      *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
+      *pde = V2P(mem) | PTE_P | PTE_W | PTE_U;
     } else goto NEW_ALLOC;
   } else {
     NEW_ALLOC:
