@@ -84,20 +84,17 @@ trap(struct trapframe *tf)
     lapiceoi();
     break;
   case T_PGFLT:
-    cprintf("page_fault_occured at %x\n",rcr2());
     uint pft_addr = PGROUNDDOWN(rcr2());
-    
-
     pte_t *pte = walkpgdir(myproc()->pgdir,(void*)pft_addr,0);
-    uint offset = V2P(PTE_ADDR(*pte)) >> PTXSHIFT;
-    cprintf("%d\n",offset);
+    uint offset = PTE_ADDR(*pte) >> PTXSHIFT;
     uint perm = PTE_FLAGS(*pte);
-    if(!offset) panic("T_PGFLT\n"); //page_fault가 났을 때 offset이 0이면 진짜 page_fault_occur이다.
-    char *new_space = kalloc(); //새로운 공간 할당.
-    swapread(new_space,(--offset)<<3); //이거 공간 초기화는 어케하냐.
 
-    *pte = V2P(new_space) | perm | PTE_P; //pte를 새로운 페이지와 권환과 PTE_P로 채운다.
-    swap_bit[offset] = 0; //swap 끝났으니까 bit을 0으로 채워준다.
+    if(!offset) panic("T_PGFLT\n");
+    char *new_space = kalloc();
+    swapread(new_space,(--offset)<<3);
+
+    *pte = V2P(new_space) | perm | PTE_P;
+    swap_bit[offset] = 0;
     int idx = V2P(new_space)/PGSIZE;
     if(idx < PHYSTOP/PGSIZE) {
       struct page *cur = &pages[idx];

@@ -106,6 +106,7 @@ int reclaim() {
     pte_t* now_pte = walkpgdir(page_lru_head->pgdir,page_lru_head->vaddr,0);
     if(!now_pte) goto NEXT;
     if((*now_pte&PTE_P) == 0) goto NEXT;
+
     if(*now_pte&PTE_A) {
       *now_pte &= ~PTE_A; //clear PTE_A;
     } else {
@@ -124,7 +125,6 @@ int reclaim() {
             page_lru_head->next->prev = page_lru_head->prev;
             page_lru_head = next;
           }
-          
           num_lru_pages--;
           goto SUCCESS;
         }
