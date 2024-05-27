@@ -50,15 +50,34 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
   } else if(!(*pde&PTE_P)) {
     //pde가 존재하지만 현재 메모리에 없는 경우.
     uint offset = PTE_ADDR(*pde) >> PTXSHIFT;
-    if(offset != 0) {
-      char* mem = kalloc();
-      swapread(mem,(offset-1)<<3);
-      swap_bit[offset-1] = 0;
-      *pde = V2P(mem) | PTE_P | PTE_W | PTE_U;
-      pgtab = (pte_t*)V2P(mem);
-    } else goto NEW_ALLOC;
+    char* mem = kalloc(); //새롭게 할당해서
+    if(mem == 0) return 0;
+    char temp[4096] = {0,};
+    swapread(mem,offset<<3); //mem에다 swap했던 것을 쓴다.
+    swapwrtie(temp,offset<<3); //swap공간을 비워준다.
+    swap_bit[offset] = 0; //swapbit를 비워주고.
+    *pde = V2P(mem) | PTE_P | PTE_W | PTE_U; //pde를 설정한다.
+    pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
+    
+    if(use_pages_lock) acquire(&pages_lock);
+    uint idx = V2P(mem)/PGSIZE;
+    pages[idx].pgdir = pgdir;
+    pages[idx].vaddr = (char*)va;
+    struct page *cur = &pages[idx];  
+    if(!page_lru_head) {
+      page_lru_head = cur;
+      page_lru_head->next = cur, page_lru_head->prev = cur;
+    } else {
+      //lru has something.
+      cur->next = page_lru_head;
+      cur->prev = page_lru_head->prev;
+      cur->prev->next = cur;
+      page_lru_head->prev = cur;
+    }
+    num_lru_pages++;
+    if(use_pages_lock) release(&pages_lock);
+    
   } else {
-    NEW_ALLOC:
     if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
       return 0;
     memset(pgtab, 0, PGSIZE);
