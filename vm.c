@@ -433,7 +433,7 @@ pde_t* copyuvm(pde_t *pgdir, uint sz) {
             swapread(temper,offset<<3);
             swapwrite(temper,j);
             pte_t* new_pte = walkpgdir(d,(void*)i,1);
-            *new_pte = (((j+1) << PTXSHIFT) | flags)) & ~PTE_P;
+            *new_pte = (((j+1) << PTXSHIFT) | flags) & ~PTE_P;
             got = 1;
             break;
           }
