@@ -56,13 +56,16 @@ void insert_list(uint idx) {
 
 void remove_list(uint idx) {
   struct page *cur = &pages[idx];
-  if(num_lru_pages == 1) {
-    page_lru_head = 0;
+  if(cur == num_lru_pages) {
+    if(num_lru_pages == 1) page_lru_head = 0;
+    else {
+      page_lru_head = page_lru_head->next;
+      cur->prev->next = cur->next;
+      cur->next->prev = cur->prev;
+    }
   } else {
-    struct page *next = page_lru_head->next;
-    page_lru_head->prev->next = page_lru_head->next;
-    page_lru_head->next->prev = page_lru_head->prev;
-    page_lru_head = next;
+    cur->prev->next = cur->next;
+    cur->next->prev = cur->prev;
   }
   num_lru_pages--;
 }
