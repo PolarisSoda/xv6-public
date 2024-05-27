@@ -57,11 +57,11 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
         return 0;
       }
       char* temp = kalloc();
-      if(temp == 0) {
-        kfree(mem);
-        return 0;
-      }
+      if(temp == 0) {kfree(mem); return 0;}
+      memset(temp,0,PGSIZE);
       swapread(mem,offset<<3);
+      swapwrite(temp,offset<<3);
+      kfree(temp);
       swap_bit[offset] = 0;
       *pde = V2P(mem) | PTE_P | PTE_W | PTE_U;
       pgtab = (pte_t*)P2V(PTE_ADDR(*pde));  
