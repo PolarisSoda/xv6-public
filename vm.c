@@ -50,10 +50,12 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
   } else if(!(*pde&PTE_P)) {
     //pde가 존재하지만 현재 메모리에 없는 경우.
     uint offset = PTE_ADDR(*pde) >> PTXSHIFT;
-    if(offset == 0) goto others;
+    if(offset-- == 0) goto others;
     char* mem = kalloc(); //새롭게 할당해서
     if(mem == 0) return 0;
+    char temp[4096] = {0,};
     swapread(mem,offset<<3); //mem에다 swap했던 것을 쓴다.
+    swapwrite(temp,offset<<3);
     swap_bit[offset] = 0; //swapbit를 비워주고.
     *pde = V2P(mem) | PTE_P | PTE_W | PTE_U; //pde를 설정한다.
     pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
