@@ -109,6 +109,7 @@ int reclaim() {
     pte_t* now_pte = walkpgdir(page_lru_head->pgdir,page_lru_head->vaddr,0);
     if(!now_pte) panic("lru holds null"); //없을수가 있나?
 
+    if(*now_pte&PTE_P) continue;
     if(*now_pte&PTE_A) {
       *now_pte &= ~PTE_A; //clear PTE_A;
     } else {
