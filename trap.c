@@ -94,10 +94,8 @@ trap(struct trapframe *tf)
     pte_t *pte = walkpgdir(myproc()->pgdir,(void*)pft_addr,0);
     uint offset = PTE_ADDR(*pte) >> PTXSHIFT;
     uint perm = PTE_FLAGS(*pte);
-    cprintf("before kalloc\n");
     if(kmem.use_lock && holding(&kmem.lock)) release(&kmem.lock);
     char* mem = kalloc();
-    cprintf("after kalloc\n");
     if(kmem.use_lock && !holding(&kmem.lock)) acquire(&kmem.lock);
     if(mem == 0) panic("what?");
     if(offset-- == 0 && offset <= 1555 && swap_bit[offset] != 0) {
@@ -108,6 +106,19 @@ trap(struct trapframe *tf)
       memmove(mem,(char*)P2V(mem),PGSIZE);
     }
     *pte = V2P(mem) | perm | PTE_P;
+    struct page *cur = &pages[V2P(mem)/PGSIZE];
+    if(*pte&PTE_U) {
+      if(!page_lru_head) {
+        page_lru_head = cur;
+        page_lru_head->next = cur, page_lru_head->prev = cur;
+      } else {
+        cur->next = page_lru_head;
+        cur->prev = page_lru_head->prev;
+        page_lru_head->prev = cur;
+        page_lru_head = cur;
+      }
+      num_lru_pages++;
+    }
     /*
     *pte = V2P(new_space) | perm | PTE_P;
     swap_bit[offset] = 0;
