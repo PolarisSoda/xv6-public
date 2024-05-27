@@ -284,16 +284,18 @@ int allocuvm(pde_t *pgdir, uint oldsz, uint newsz) {
 int deallocuvm(pde_t *pgdir, uint oldsz, uint newsz) {
   pte_t *pte;
   uint a, pa;
-  if(*pte == 0x80000000) panic("WERE");
+  
   if(newsz >= oldsz)
     return oldsz;
 
   a = PGROUNDUP(newsz);
   for(; a  < oldsz; a += PGSIZE){
     pte = walkpgdir(pgdir, (char*)a, 0);
+    
     if(!pte)
       a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
     else {
+      if(*pte == 0x80000000) panic("WERE");
       if(*pte&PTE_P) {
         pa = PTE_ADDR(*pte);
         if(*pte&PTE_U) {
