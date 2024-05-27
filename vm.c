@@ -50,7 +50,7 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
   } else if(!(*pde&PTE_P)) {
     //pde가 존재하지만 현재 메모리에 없는 경우.
     uint offset = PTE_ADDR(*pde) >> PTXSHIFT;
-    if(offset-- == 0) goto others;
+    if(offset-- == 0 || swap_bit[offset] == 0) goto others;
     char* mem = kalloc(); //새롭게 할당해서
     if(mem == 0) return 0;
     char temp[4096] = {0,};
