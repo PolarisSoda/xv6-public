@@ -17,6 +17,7 @@ extern int num_lru_pages;
 extern struct spinlock pages_lock;
 extern int use_pages_lock;
 extern char swap_bit[SWAPMAX/64+1];
+extern char nothing[4096];
 struct spinlock tickslock;
 uint ticks;
 
@@ -88,14 +89,16 @@ trap(struct trapframe *tf)
     pte_t *pte = walkpgdir(myproc()->pgdir,(void*)pft_addr,0);
     uint offset = PTE_ADDR(*pte) >> PTXSHIFT;
     uint perm = PTE_FLAGS(*pte);
-    char *new_space = kalloc();
-    if(offset == 0) {
+    char* mem = kalloc();
+    if(mem == 0) panic("what?");
+    if(offset-- == 0 && swap_bit[offset] != 0) {
+      swapwrite(mem,offset<<3);
+      swapread(nothing,offset<<3);
+      *pte = V2P(mem) | perm | PTE_P;
     } else {
-
+      *pte = V2P(mem) | perm | PTE_P;
     }
-    
-    swapread(new_space,(--offset)<<3);
-
+    /*
     *pte = V2P(new_space) | perm | PTE_P;
     swap_bit[offset] = 0;
     int idx = V2P(new_space)/PGSIZE;
@@ -115,7 +118,9 @@ trap(struct trapframe *tf)
         }
         num_lru_pages++;
       }
+      
     }
+    */
     //accessing swapped page will occur page fault.
     break;
 
