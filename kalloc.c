@@ -29,7 +29,7 @@ struct page pages[PHYSTOP/PGSIZE]; //이건 그냥 page를 관리하는 관리�
 struct page *page_lru_head; //이게 LRU PAGE들을 관리하는 Circulat LIST.
 int num_lru_pages = 0;
 int num_free_pages = PHYSTOP/PGSIZE;
-char swap_bit[SWAPMAX/64+1];
+char swap_bit[SWAPMAX>>3];
 
 // Initialization happens in two phases.
 // 1. main() calls kinit1() while still using entrypgdir to place just
@@ -115,7 +115,7 @@ int reclaim() {
           swapwrite(phy_addr,j<<3); //swap에 쓴다.
           swap_bit[j] = 0xFF; //썼다고 표시한다
           *now_pte = (PTE_FLAGS(*now_pte) & (~PTE_P)) | ((j+1)<<PTXSHIFT); //기존의 PTE에서 PPN대신 OFFSET으로 채워넣고, PTE_P 비트를 제거한다.
-          nl_kfree(phy_addr); //메모리에서 내용을 지운다.
+          kfree(phy_addr); //메모리에서 내용을 지운다.
           if(num_lru_pages == 1) {
             page_lru_head = 0;
           } else {
@@ -146,17 +146,16 @@ int reclaim() {
 
 char* kalloc(void) {
   struct run *r;
-
+  RETRY:
   if(kmem.use_lock) acquire(&kmem.lock);
 
-  RETRY:
   r = kmem.freelist;
   if(r) {
     kmem.freelist = r->next;
   } else {
-    if(!reclaim()) {
+    if(kmem.use_lock) release(&kmem.lock);
+    if(!reclaim()) { 
       cprintf("OOM\n");
-      if(kmem.use_lock) release(&kmem.lock);
       return 0;
     }
     goto RETRY;
