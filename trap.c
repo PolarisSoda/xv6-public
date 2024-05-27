@@ -91,13 +91,14 @@ trap(struct trapframe *tf)
     uint perm = PTE_FLAGS(*pte);
     char* mem = kalloc();
     if(mem == 0) panic("what?");
-    if(offset-- == 0 &&  offset <= 1555 && swap_bit[offset] != 0) {
+    if(offset-- == 0 && offset <= 1555 && swap_bit[offset] != 0) {
       swapwrite(mem,offset<<3);
       swapread(nothing,offset<<3);
-      *pte = V2P(mem) | perm | PTE_P;
+      swap_bit[offset] = 0;
     } else {
-      *pte = V2P(mem) | perm | PTE_P;
+      memmove(mem,(char*)P2V(mem),PGSIZE);
     }
+    *pte = V2P(mem) | perm | PTE_P;
     /*
     *pte = V2P(new_space) | perm | PTE_P;
     swap_bit[offset] = 0;
