@@ -113,11 +113,11 @@ int reclaim() {
       *now_pte &= ~PTE_A; //clear PTE_A;
     } else {
       char* phy_addr = (char*)P2V(PTE_ADDR(*now_pte));
-      for(int i=0; i<SWAPMAX/64; i++) {
-        if(!swap_bit[i]) {
-          swapwrite(phy_addr,i<<3); //swap에 쓴다.
-          swap_bit[i] = 0xFF; //썼다고 표시한다
-          *now_pte = (PTE_FLAGS(*now_pte) & (~PTE_P)) | ((i+1)<<PTXSHIFT); //기존의 PTE에서 PPN대신 OFFSET으로 채워넣고, PTE_P 비트를 제거한다.
+      for(int j=0; j<SWAPMAX/64; j++) {
+        if(!swap_bit[j]) {
+          swapwrite(phy_addr,j<<3); //swap에 쓴다.
+          swap_bit[j] = 0xFF; //썼다고 표시한다
+          *now_pte = (PTE_FLAGS(*now_pte) & (~PTE_P)) | ((j+1)<<PTXSHIFT); //기존의 PTE에서 PPN대신 OFFSET으로 채워넣고, PTE_P 비트를 제거한다.
           nl_kfree(phy_addr); //메모리에서 내용을 지운다.
           if(num_lru_pages == 1) {
             page_lru_head = 0;
