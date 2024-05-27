@@ -52,10 +52,7 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
     uint offset = PTE_ADDR(*pde) >> PTXSHIFT;
     char* mem = kalloc(); //새롭게 할당해서
     if(mem == 0) return 0;
-    char temp[4096];
-    memset(temp,0,PGSIZE);
     swapread(mem,offset<<3); //mem에다 swap했던 것을 쓴다.
-    swapwrite(temp,offset<<3); //swap공간을 비워준다.
     swap_bit[offset] = 0; //swapbit를 비워주고.
     *pde = V2P(mem) | PTE_P | PTE_W | PTE_U; //pde를 설정한다.
     pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
