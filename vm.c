@@ -40,6 +40,20 @@ seginit(void)
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
 
+void insert_list(uint idx) {
+  struct page *cur = &pages[idx];  
+  if(!page_lru_head) {
+    page_lru_head = cur;
+    page_lru_head->next = cur, page_lru_head->prev = cur;
+  } else {
+    cur->next = page_lru_head;
+    cur->prev = page_lru_head->prev;
+    cur->prev->next = cur;
+    page_lru_head->prev = cur;
+  }
+  num_lru_pages++;
+}
+
 pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
   pde_t *pde;
   pte_t *pgtab;
@@ -67,21 +81,7 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
       uint idx = V2P(mem)/PGSIZE;
       pages[idx].pgdir = pgdir;
       pages[idx].vaddr = (char*)va; //walkpgdir로 접근해라.
-      if(*pde&PTE_U) {
-        struct page *cur = &pages[idx];  
-        if(!page_lru_head) {
-          //it means lru list is empty.
-          page_lru_head = cur;
-          page_lru_head->next = cur, page_lru_head->prev = cur;
-        } else {
-          //lru has something.
-          cur->next = page_lru_head;
-          cur->prev = page_lru_head->prev;
-          cur->prev->next = cur;
-          page_lru_head->prev = cur;
-        }
-        num_lru_pages++;
-      }
+      if(*pde&PTE_U) insert_list(idx);
       if(use_pages_lock) release(&pages_lock);
     } else {
       if(!alloc || (pgtab = (pte_t*)kalloc()) == 0) return 0;
