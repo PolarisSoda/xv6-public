@@ -105,6 +105,7 @@ int reclaim() {
   for(int i=0; i<num_lru_pages; i++) {
     pte_t* now_pte = walkpgdir(page_lru_head->pgdir,page_lru_head->vaddr,0);
     if(!now_pte) goto NEXT;
+    if((*now_pte&PTE_P) == 0) goto NEXT;
     if(*now_pte&PTE_A) {
       *now_pte &= ~PTE_A; //clear PTE_A;
     } else {
@@ -143,30 +144,25 @@ int reclaim() {
 // Allocate one 4096-byte page of physical memory.
 // Returns a pointer that the kernel can use.
 // Returns 0 if the memory cannot be allocated.
+
 char* kalloc(void) {
   struct run *r;
 
-//try_again:
-  if(kmem.use_lock)
-    acquire(&kmem.lock);
+  if(kmem.use_lock) acquire(&kmem.lock);
   RETRY:
   r = kmem.freelist;
   if(r) {
     kmem.freelist = r->next;
   } else {
-    //there's no physical memory. so we have to swap it.
-    cprintf("reclaim!!!!\n");
     if(!reclaim()) {
       cprintf("OOM\n");
-      if(kmem.use_lock)
-        release(&kmem.lock);
+      if(kmem.use_lock) release(&kmem.lock);
       return 0;
     }
     cprintf("reclaim ended!\n");
     goto RETRY;
   }
-  if(kmem.use_lock)
-    release(&kmem.lock);
+  if(kmem.use_lock) release(&kmem.lock);
   return (char*)r;
 }
 
