@@ -263,7 +263,6 @@ void inituvm(pde_t *pgdir, char *init, uint sz) {
 
 // Load a program segment into pgdir.  addr must be page-aligned
 // and the pages from addr to addr+sz must already be mapped.
-// pte_p가 그거면 어떡하노 -> 일단 보류.
 int loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz) {
   uint i, pa, n;
   pte_t *pte;
@@ -286,7 +285,6 @@ int loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz) {
 
 // Allocate page tables and physical memory to grow process from oldsz to
 // newsz, which need not be page aligned.  Returns new size or 0 on error.
-// 어차피 mappage로 할당하는 이상, lru_list에서는 건드릴 이유가 없다.
 int allocuvm(pde_t *pgdir, uint oldsz, uint newsz) {
   char *mem;
   uint a;
@@ -336,13 +334,21 @@ int deallocuvm(pde_t *pgdir, uint oldsz, uint newsz) {
     
     if(!pte)
       a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
-    else if((*pte & PTE_P) != 0) {
-      pa = PTE_ADDR(*pte);
-      if(pa == 0)
-        panic("kfree");
-      char *v = P2V(pa);
-      kfree(v);
-      *pte = 0;
+    else {
+      if(*pte&PTE_P) {
+        pa = PTE_ADDR(*pte);
+        if(pa == 0) panic("kfree");
+        char *v = P2V(pa);
+        kfree(v);
+        *pte = 0;
+      } else {
+        uint offset = PTE_ADDR(*pte) >> PTXSHIFT;
+        if(offset-- != 0 && swap_bit[offset] != 0) {
+          swap_bit[offset] = 0;
+          swapwrite(nothing,offset<<3);
+          *pte = 0;
+        }
+      }
     }
   }
   return newsz;
