@@ -90,6 +90,7 @@ trap(struct trapframe *tf)
 
     pte_t *pte = walkpgdir(myproc()->pgdir,(void*)pft_addr,0);
     uint offset = V2P(PTE_ADDR(*pte)) >> PTXSHIFT;
+    cprintf("%d\n",offset);
     uint perm = PTE_FLAGS(*pte);
     if(!offset) panic("T_PGFLT\n"); //page_fault가 났을 때 offset이 0이면 진짜 page_fault_occur이다.
     char *new_space = kalloc(); //새로운 공간 할당.
