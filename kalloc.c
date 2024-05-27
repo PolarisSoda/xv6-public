@@ -105,7 +105,6 @@ int reclaim() {
   for(int i=0; i<num_lru_pages; i++) {
     pte_t* now_pte = walkpgdir(page_lru_head->pgdir,page_lru_head->vaddr,0);
     if(!now_pte) goto NEXT;
-    if(*now_pte&PTE_P) goto NEXT;
     if(*now_pte&PTE_A) {
       *now_pte &= ~PTE_A; //clear PTE_A;
     } else {
@@ -119,9 +118,10 @@ int reclaim() {
           if(num_lru_pages == 1) {
             page_lru_head = 0;
           } else {
+            struct page *next = page_lru_head->next;
             page_lru_head->prev->next = page_lru_head->next;
             page_lru_head->next->prev = page_lru_head->prev;
-            page_lru_head = page_lru_head->next; //LRU에서 제거한다.
+            page_lru_head = next;
           }
           
           num_lru_pages--;
