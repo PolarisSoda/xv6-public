@@ -53,27 +53,13 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
       swapread(mem,(offset-1)<<3);
       swap_bit[offset-1] = 0;
       *pde = V2P(mem) | PTE_P | PTE_W | PTE_U;
-      pgtab = (pte_t*)mem;
+      pgtab = (pte_t*)V2P(mem);
     } else goto NEW_ALLOC;
   } else {
     NEW_ALLOC:
     if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
       return 0;
     memset(pgtab, 0, PGSIZE);
-    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
-  }
-  return &pgtab[PTX(va)];
-
-  if(*pde & PTE_P){
-    pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
-  } else {
-    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
-      return 0;
-    // Make sure all those PTE_P bits are zero.
-    memset(pgtab, 0, PGSIZE);
-    // The permissions here are overly generous, but they can
-    // be further restricted by the permissions in the page table
-    // entries, if necessary.
     *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
   }
   return &pgtab[PTX(va)];
