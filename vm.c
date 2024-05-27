@@ -295,7 +295,6 @@ int deallocuvm(pde_t *pgdir, uint oldsz, uint newsz) {
     if(!pte)
       a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
     else {
-      if(*pte == 0x80000000) panic("WERE");
       if(*pte&PTE_P) {
         pa = PTE_ADDR(*pte);
         if(*pte&PTE_U) {

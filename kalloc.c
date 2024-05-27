@@ -118,6 +118,7 @@ int reclaim() {
           swapwrite(phy_addr,i<<3); //swap에 쓴다.
           swap_bit[i] = 0xFF; //썼다고 표시한다
           *now_pte = (PTE_FLAGS(*now_pte) & (~PTE_P)) | ((i+1)<<PTXSHIFT); //기존의 PTE에서 PPN대신 OFFSET으로 채워넣고, PTE_P 비트를 제거한다.
+          if(*now_pte == 0x80000000) panic("WERE");
           nl_kfree(phy_addr); //메모리에서 내용을 지운다.
           page_lru_head->prev->next = page_lru_head->next;
           page_lru_head->next->prev = page_lru_head->prev;
