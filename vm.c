@@ -294,43 +294,6 @@ int deallocuvm(pde_t *pgdir, uint oldsz, uint newsz) {
     
     if(!pte)
       a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
-    else {
-      if(*pte&PTE_P) {
-        pa = PTE_ADDR(*pte);
-        if(*pte&PTE_U) {
-          struct page *cur = &pages[pa/PGSIZE];
-          if(cur == page_lru_head) {
-            if(num_lru_pages == 1) page_lru_head = 0;
-            else {
-              page_lru_head = page_lru_head->next;
-              cur->prev->next = cur->next;
-              cur->next->prev = cur->prev;
-            }
-          } else {
-            cur->prev->next = cur->next;
-            cur->next->prev = cur->prev;
-          }
-          num_lru_pages--;
-        }
-        if(pa == 0)
-          panic("kfree");
-        char *v = P2V(pa);
-        kfree(v);
-
-        *pte = 0;
-      } else {
-        uint offset = (PTE_ADDR(*pte) >> PTXSHIFT);
-        if(offset != 0) {
-          swapwrite(0,(offset-1)<<3);
-          swap_bit[offset-1] = 0;
-          *pte = 0;
-          
-        }
-      }
-    }
-    /*
-    if(!pte)
-      a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
     else if((*pte & PTE_P) != 0) {
       pa = PTE_ADDR(*pte);
       if(pa == 0)
@@ -339,7 +302,6 @@ int deallocuvm(pde_t *pgdir, uint oldsz, uint newsz) {
       kfree(v);
       *pte = 0;
     }
-    */
   }
   return newsz;
 }
