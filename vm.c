@@ -17,7 +17,7 @@ extern int num_lru_pages;
 extern struct spinlock pages_lock;
 extern int use_pages_lock;
 extern char swap_bit[SWAPMAX/64+1];
-
+char nothing[4096];
 // Set up CPU's kernel segment descriptors.
 // Run once on entry on each CPU.
 void
@@ -56,12 +56,8 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
         cprintf("walkpgdir failed\n");
         return 0;
       }
-      char* temp = kalloc();
-      if(temp == 0) {kfree(mem); return 0;}
-      memset(temp,0,PGSIZE);
       swapread(mem,offset<<3);
-      swapwrite(temp,offset<<3);
-      kfree(temp);
+      swapwrite(nothing,offset<<3);
       swap_bit[offset] = 0;
       *pde = V2P(mem) | PTE_P | PTE_W | PTE_U;
       pgtab = (pte_t*)P2V(PTE_ADDR(*pde));  
