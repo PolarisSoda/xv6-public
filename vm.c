@@ -18,6 +18,7 @@ extern struct spinlock pages_lock;
 extern int use_pages_lock;
 extern char swap_bit[SWAPMAX/64+1];
 char nothing[4096];
+char temper[4096];
 // Set up CPU's kernel segment descriptors.
 // Run once on entry on each CPU.
 void
@@ -422,16 +423,34 @@ pde_t* copyuvm(pde_t *pgdir, uint sz) {
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P)) {
-
-    }
-    pa = PTE_ADDR(*pte);
-    flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      goto bad;
-    memmove(mem, (char*)P2V(pa), PGSIZE);
-    if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0) {
-      kfree(mem);
-      goto bad;
+      uint offset = PTE_ADDR(*pte) >> PTXSHIFT;
+      uint flags = PTE_FLAGS(*pte);
+      if(offset-- == 0 && offset < 1555 && swap_bit[offset] != 0) {
+        int got = 0;
+        for(int j=0; j<1555; j++) {
+          if(swap_bit[j] == 0) {
+            swap_bit[j] = 0xFF;
+            swapread(temper,offset<<3);
+            swapwrite(temper,j);
+            pte_t* new_pte = walkpgdir(d,(void*)i,1);
+            *new_pte = (((j+1) << PTXSHIFT) | flags)) & ~PTE_P;
+            got = 1;
+            break;
+          }
+        }
+        if(!got) return 0;
+      }
+      
+    } else {
+      pa = PTE_ADDR(*pte);
+      flags = PTE_FLAGS(*pte);
+      if((mem = kalloc()) == 0)
+        goto bad;
+      memmove(mem, (char*)P2V(pa), PGSIZE);
+      if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0) {
+        kfree(mem);
+        goto bad;
+      }
     }
   }
   return d;
