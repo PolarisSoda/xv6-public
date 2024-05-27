@@ -44,13 +44,32 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
   pte_t *pgtab;
 
   pde = &pgdir[PDX(va)];
+  if(*pde & PTE_P) {
+    pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
+  } else if(!(*pde&PTE_P)) {
+    uint offset = (PTE_ADDR(*pde) >> PTXSHIFT);
+    if(offset != 0) {
+      char* mem = kalloc();
+      swapread(mem,(offset-1)<<3);
+      swap_bit[offset-1] = 0;
+      *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
+    } else goto NEW_ALLOC;
+  } else {
+    NEW_ALLOC:
+    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
+      return 0;
+    memset(pgtab, 0, PGSIZE);
+    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
+  }
+  return &pgtab[PTX(va)];
+
   if(*pde & PTE_P){
     pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
   } else {
     if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
       return 0;
     // Make sure all those PTE_P bits are zero.
-    //memset(pgtab, 0, PGSIZE);
+    memset(pgtab, 0, PGSIZE);
     // The permissions here are overly generous, but they can
     // be further restricted by the permissions in the page table
     // entries, if necessary.
@@ -58,6 +77,28 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
   }
   return &pgtab[PTX(va)];
 }
+
+/*
+pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
+  pde_t *pde;
+  pte_t *pgtab;
+
+  pde = &pgdir[PDX(va)];
+  if(*pde & PTE_P){
+    pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
+  } else {
+    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
+      return 0;
+    // Make sure all those PTE_P bits are zero.
+    memset(pgtab, 0, PGSIZE);
+    // The permissions here are overly generous, but they can
+    // be further restricted by the permissions in the page table
+    // entries, if necessary.
+    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
+  }
+  return &pgtab[PTX(va)];
+}
+*/
 
 // Create PTEs for virtual addresses starting at va that refer to
 // physical addresses starting at pa. va and size might not
