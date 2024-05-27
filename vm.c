@@ -56,7 +56,9 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
         cprintf("walkpgdir failed\n");
         return 0;
       }
+      char temp[4096] = {0,};
       swapread(mem,offset<<3);
+      swapwrite(temp,offset<<3);
       swap_bit[offset] = 0;
       *pde = V2P(mem) | PTE_P | PTE_W | PTE_U;
       pgtab = (pte_t*)P2V(PTE_ADDR(*pde));  
