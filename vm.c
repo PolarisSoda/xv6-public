@@ -384,8 +384,19 @@ void freevm(pde_t *pgdir) {
   deallocuvm(pgdir, KERNBASE, 0);
   for(i = 0; i < NPDENTRIES; i++){
     if(pgdir[i] & PTE_P){
-      char * v = P2V(PTE_ADDR(pgdir[i]));
+      uint pa = PTE_ADDR(pgdir[i]);
+      uint idx = pa/PGSIZE;
+      if(use_pages_lock) acquire(&pages_lock); //critical section starts.
+      if(pgdir[i]&PTE_U) remove_list(idx);
+      if(use_pages_lock) release(&pages_lock); //critical section ends.
+      char * v = P2V(pa);
       kfree(v);
+    } else {
+      uint offset = PTE_ADDR(pgdir[i]) >> PTXSHIFT;
+      if(offset-- != 0 && swap_bit[offset] != 0) {
+        swap_bit[offset] = 0;
+        swapwrite(nothing,offset<<3);
+      }
     }
   }
   kfree((char*)pgdir);
@@ -416,8 +427,9 @@ copyuvm(pde_t *pgdir, uint sz)
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
-    if(!(*pte & PTE_P))
-      panic("copyuvm: page not present");
+    if(!(*pte & PTE_P)) {
+
+    }
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
     if((mem = kalloc()) == 0)
