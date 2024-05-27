@@ -425,7 +425,7 @@ pde_t* copyuvm(pde_t *pgdir, uint sz) {
     if(!(*pte & PTE_P)) {
       uint offset = PTE_ADDR(*pte) >> PTXSHIFT;
       uint flags = PTE_FLAGS(*pte);
-      if(offset-- == 0 && offset < 1555 && swap_bit[offset] != 0) {
+      if(offset-- == 0 && offset < SWAPMAX/8 && swap_bit[offset] != 0) {
         int got = 0;
         for(int j=0; j<1555; j++) {
           if(swap_bit[j] == 0) {
