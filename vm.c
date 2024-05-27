@@ -99,13 +99,14 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
         num_lru_pages++;
         if(use_pages_lock) release(&pages_lock); //critical section ends.
       }
+      struct page *cur = page_lru_head;
+      for(int i=0; i<num_lru_pages; i++) {
+        cprintf("%x %x -> ",cur->pgdir,cur->vaddr);
+        cur = cur->next;
+      }
+      cprintf("\n");
     }
-    struct page *cur = page_lru_head;
-    for(int i=0; i<num_lru_pages; i++) {
-      cprintf("%x %x -> ",cur->pgdir,cur->vaddr);
-      cur = cur->next;
-    }
-    cprintf("\n");
+    
     if(a == last) break;
     a += PGSIZE;
     pa += PGSIZE;
