@@ -54,6 +54,19 @@ void insert_list(uint idx) {
   num_lru_pages++;
 }
 
+void remove_list(uint idx) {
+  struct page *cur = &pages[idx];
+  if(num_lru_pages == 1) {
+    page_lru_head = 0;
+  } else {
+    struct page *next = page_lru_head->next;
+    page_lru_head->prev->next = page_lru_head->next;
+    page_lru_head->next->prev = page_lru_head->prev;
+    page_lru_head = next;
+  }
+  num_lru_pages--;
+}
+
 pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
   pde_t *pde;
   pte_t *pgtab;
@@ -338,6 +351,10 @@ int deallocuvm(pde_t *pgdir, uint oldsz, uint newsz) {
       if(*pte&PTE_P) {
         pa = PTE_ADDR(*pte);
         if(pa == 0) panic("kfree");
+        uint idx = pa/PGSIZE;
+        if(use_pages_lock) acquire(&pages_lock); //critical section starts.
+        if(*pte&PTE_U) remove_list(idx);
+        if(use_pages_lock) release(&pages_lock); //critical section ends.
         char *v = P2V(pa);
         kfree(v);
         *pte = 0;
