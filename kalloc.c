@@ -106,6 +106,7 @@ int reclaim() {
   if(use_pages_lock) acquire(&pages_lock);
 
   for(int i=0; i<num_lru_pages; i++) {
+    cprintf("%x\n",page_lru_head->vaddr);
     pte_t* now_pte = walkpgdir(page_lru_head->pgdir,page_lru_head->vaddr,0);
     if(!now_pte) panic("lru holds null"); //없을수가 있나?
 
