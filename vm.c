@@ -61,20 +61,23 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
 
     if(use_pages_lock) acquire(&pages_lock);
     uint idx = V2P(mem)/PGSIZE;
-    pages[idx].pgdir = pgdir;
-    pages[idx].vaddr = (char*)va;
-    struct page *cur = &pages[idx];  
-    if(!page_lru_head) {
-      page_lru_head = cur;
-      page_lru_head->next = cur, page_lru_head->prev = cur;
-    } else {
-      //lru has something.
-      cur->next = page_lru_head;
-      cur->prev = page_lru_head->prev;
-      cur->prev->next = cur;
-      page_lru_head->prev = cur;
+    if(idx < PHYSTOP/PGSIZE) {
+      pages[idx].pgdir = pgdir;
+      pages[idx].vaddr = (char*)va;
+      struct page *cur = &pages[idx];  
+      if(!page_lru_head) {
+        page_lru_head = cur;
+        page_lru_head->next = cur, page_lru_head->prev = cur;
+      } else {
+        //lru has something.
+        cur->next = page_lru_head;
+        cur->prev = page_lru_head->prev;
+        cur->prev->next = cur;
+        page_lru_head->prev = cur;
+      }
+      num_lru_pages++;
     }
-    num_lru_pages++;
+    
     if(use_pages_lock) release(&pages_lock);
     
   } else {
