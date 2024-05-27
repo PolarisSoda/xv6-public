@@ -385,7 +385,6 @@ void freevm(pde_t *pgdir) {
   for(i = 0; i < NPDENTRIES; i++){
     if(pgdir[i] & PTE_P){
       uint pa = PTE_ADDR(pgdir[i]);
-      if(pgdir[i]&PTE_U) remove_list(pa/PGSIZE);
       char * v = P2V(pa);
       kfree(v);
     } else {
