@@ -85,7 +85,6 @@ trap(struct trapframe *tf)
     break;
   case T_PGFLT:
     uint pft_addr = PGROUNDDOWN(rcr2());
-    if(pft_addr >= KERNBASE) goto defe;
     pte_t *pte = walkpgdir(myproc()->pgdir,(void*)pft_addr,0);
     uint offset = PTE_ADDR(*pte) >> PTXSHIFT;
     uint perm = PTE_FLAGS(*pte);

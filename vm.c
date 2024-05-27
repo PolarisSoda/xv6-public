@@ -410,9 +410,7 @@ void clearpteu(pde_t *pgdir, char *uva) {
 
 // Given a parent process's page table, create a copy
 // of it for a child.
-pde_t*
-copyuvm(pde_t *pgdir, uint sz)
-{
+pde_t* copyuvm(pde_t *pgdir, uint sz) {
   pde_t *d;
   pte_t *pte;
   uint pa, i, flags;
