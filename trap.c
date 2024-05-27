@@ -94,8 +94,9 @@ trap(struct trapframe *tf)
     pte_t *pte = walkpgdir(myproc()->pgdir,(void*)pft_addr,0);
     uint offset = PTE_ADDR(*pte) >> PTXSHIFT;
     uint perm = PTE_FLAGS(*pte);
-    if(kmem.use_lock) release(&kmem.lock);
+    cprintf("before kalloc\n");
     char* mem = kalloc();
+    cprintf("after kalloc\n");
     if(kmem.use_lock) acquire(&kmem.lock);
     if(mem == 0) panic("what?");
     if(offset-- == 0 && offset <= 1555 && swap_bit[offset] != 0) {
