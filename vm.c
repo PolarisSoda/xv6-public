@@ -298,19 +298,6 @@ int deallocuvm(pde_t *pgdir, uint oldsz, uint newsz) {
       if(*pte&PTE_P) {
         pa = PTE_ADDR(*pte);
         if(*pte&PTE_U) {
-          struct page *cur = &pages[pa/PGSIZE];
-          if(cur == page_lru_head) {
-            if(num_lru_pages == 1) page_lru_head = 0;
-            else {
-              page_lru_head = page_lru_head->next;
-              cur->prev->next = cur->next;
-              cur->next->prev = cur->prev;
-            }
-          } else {
-            cur->prev->next = cur->next;
-            cur->next->prev = cur->prev;
-          }
-          num_lru_pages--;
         }
         if(pa == 0)
           panic("kfree");
