@@ -60,7 +60,7 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
       swapread(mem,offset<<3);
       swapwrite(nothing,offset<<3);
       swap_bit[offset] = 0;
-      *pde = V2P(mem) | flags;
+      *pde = V2P(mem) | flags | PTE_P;
       pgtab = (pte_t*)P2V(PTE_ADDR(*pde));  
 
       if(use_pages_lock) acquire(&pages_lock);
