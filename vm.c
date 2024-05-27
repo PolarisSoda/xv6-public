@@ -385,14 +385,8 @@ void freevm(pde_t *pgdir) {
   for(i = 0; i < NPDENTRIES; i++){
     if(pgdir[i] & PTE_P){
       uint pa = PTE_ADDR(pgdir[i]);
-      char * v = P2V(pa);
+      char *v = P2V(pa);
       kfree(v);
-    } else {
-      uint offset = PTE_ADDR(pgdir[i]) >> PTXSHIFT;
-      if(offset-- != 0 && swap_bit[offset] != 0) {
-        swap_bit[offset] = 0;
-        swapwrite(nothing,offset<<3);
-      }
     }
   }
   kfree((char*)pgdir);
