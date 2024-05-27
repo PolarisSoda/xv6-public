@@ -18,4 +18,5 @@ int main () {
 	int a, b;
 
     swapstat(&a, &b);
+    exit();
 }
