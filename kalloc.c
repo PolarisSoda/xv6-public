@@ -105,7 +105,7 @@ int reclaim() {
   for(int i=0; i<num_lru_pages; i++) {
     pte_t* now_pte = walkpgdir(page_lru_head->pgdir,page_lru_head->vaddr,0);
     if(!now_pte) continue;
-
+    cprintf("%x\n",*now_pte);
     if(*now_pte&PTE_P) continue;
     if(*now_pte&PTE_A) {
       *now_pte &= ~PTE_A; //clear PTE_A;
