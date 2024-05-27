@@ -18,6 +18,11 @@ extern struct spinlock pages_lock;
 extern int use_pages_lock;
 extern char swap_bit[SWAPMAX/64+1];
 extern char nothing[4096];
+extern struct {
+  struct spinlock lock;
+  int use_lock;
+  struct run *freelist;
+} kmem;
 struct spinlock tickslock;
 uint ticks;
 
@@ -89,7 +94,9 @@ trap(struct trapframe *tf)
     pte_t *pte = walkpgdir(myproc()->pgdir,(void*)pft_addr,0);
     uint offset = PTE_ADDR(*pte) >> PTXSHIFT;
     uint perm = PTE_FLAGS(*pte);
+    if(kmem.use_lock) release(&kmem.lock);
     char* mem = kalloc();
+    if(kmem.use_lock) acquire(&kmem.lock);
     if(mem == 0) panic("what?");
     if(offset-- == 0 && offset <= 1555 && swap_bit[offset] != 0) {
       swapwrite(mem,offset<<3);
