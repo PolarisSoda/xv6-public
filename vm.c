@@ -284,7 +284,7 @@ int allocuvm(pde_t *pgdir, uint oldsz, uint newsz) {
 int deallocuvm(pde_t *pgdir, uint oldsz, uint newsz) {
   pte_t *pte;
   uint a, pa;
-
+  if(*pte == 0x80000000) panic("WERE");
   if(newsz >= oldsz)
     return oldsz;
 
