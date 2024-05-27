@@ -382,9 +382,13 @@ void freevm(pde_t *pgdir) {
   if(pgdir == 0)
     panic("freevm: no pgdir");
   deallocuvm(pgdir, KERNBASE, 0);
+  if(use_pages_lock) acquire(&pages_lock); //critical section starts.
   for(i = 0; i < NPDENTRIES; i++){
     if(pgdir[i] & PTE_P){
       uint pa = PTE_ADDR(pgdir[i]);
+      
+      if(pgdir[i]&PTE_U) remove_list(pa/PGSIZE);
+      
       char * v = P2V(pa);
       kfree(v);
     } else {
@@ -395,6 +399,7 @@ void freevm(pde_t *pgdir) {
       }
     }
   }
+  if(use_pages_lock) release(&pages_lock); //critical section ends.
   kfree((char*)pgdir);
 }
 
