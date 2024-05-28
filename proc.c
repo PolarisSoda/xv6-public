@@ -370,7 +370,7 @@ sched(void)
 
   if(!holding(&ptable.lock))
     panic("sched ptable.lock");
-  if(mycpu()->ncli > 5)
+  if(mycpu()->ncli > 3)
     panic("sched locks");
   if(p->state == RUNNING)
     panic("sched running");
