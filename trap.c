@@ -95,7 +95,7 @@ trap(struct trapframe *tf)
     uint offset = PTE_ADDR(*pte) >> PTXSHIFT;
     uint perm = PTE_FLAGS(*pte);
     int check = holding(&kmem.lock);
-    reclaim();
+    cprintf("%d %x\n",offset,pft_addr);
     if(kmem.use_lock && holding(&kmem.lock)) release(&kmem.lock);
     char* mem = kalloc();
     if(kmem.use_lock && check && !holding(&kmem.lock)) acquire(&kmem.lock);
