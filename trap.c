@@ -95,12 +95,11 @@ trap(struct trapframe *tf)
     uint offset = PTE_ADDR(*pte) >> PTXSHIFT;
     uint perm = PTE_FLAGS(*pte);
     int check = holding(&kmem.lock);
-    cprintf("%d %x\n",offset,pft_addr);
     if(kmem.use_lock && holding(&kmem.lock)) release(&kmem.lock);
     char* mem = kalloc();
     if(kmem.use_lock && check && !holding(&kmem.lock)) acquire(&kmem.lock);
     if(mem == 0) panic("what?");
-    if(offset-- != 0 && swap_bit[offset] != 0) {
+    if(offset-- != 0 && offset < SWAPMAX/8 && swap_bit[offset] != 0) {
       swapwrite(mem,offset);
       swapread(nothing,offset);
       swap_bit[offset] = 0;
