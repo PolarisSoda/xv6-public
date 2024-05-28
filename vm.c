@@ -17,8 +17,7 @@ extern int num_lru_pages;
 extern struct spinlock pages_lock;
 extern int use_pages_lock;
 extern char swap_bit[SWAPMAX>>3];
-char nothing[4096];
-char temper[4096];
+char nothing[4096],temper[4096];
 // Set up CPU's kernel segment descriptors.
 // Run once on entry on each CPU.
 void
@@ -77,7 +76,6 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
 
   pde = &pgdir[PDX(va)];
   if(*pde & PTE_P) {
-    //pde가 존재하고 실제로 메모리에 있는 경우.
     pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
   } else {
     uint offset = PTE_ADDR(*pde) >> PTXSHIFT;
@@ -88,8 +86,8 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
         cprintf("walkpgdir failed\n");
         return 0;
       }
-      swapread(mem,offset<<3);
-      swapwrite(nothing,offset<<3);
+      swapread(mem,offset);
+      swapwrite(nothing,offset);
       swap_bit[offset] = 0;
       *pde = V2P(mem) | flags | PTE_P;
       pgtab = (pte_t*)P2V(PTE_ADDR(*pde));  
@@ -108,28 +106,6 @@ pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
   }  
   return &pgtab[PTX(va)];
 }
-
-/*
-pte_t* walkpgdir(pde_t *pgdir, const void *va, int alloc) {
-  pde_t *pde;
-  pte_t *pgtab;
-
-  pde = &pgdir[PDX(va)];
-  if(*pde & PTE_P){
-    pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
-  } else {
-    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
-      return 0;
-    // Make sure all those PTE_P bits are zero.
-    memset(pgtab, 0, PGSIZE);
-    // The permissions here are overly generous, but they can
-    // be further restricted by the permissions in the page table
-    // entries, if necessary.
-    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
-  }
-  return &pgtab[PTX(va)];
-}
-*/
 
 // Create PTEs for virtual addresses starting at va that refer to
 // physical addresses starting at pa. va and size might not
@@ -150,7 +126,6 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm) {
 
     //cause we will not consider about PHYSTOP ~ DEVSPACE
     if(pa < PHYSTOP) {
-      
       uint idx = pa/PGSIZE;
       if(use_pages_lock) acquire(&pages_lock); //critical section starts.
       pages[idx].pgdir = pgdir;
@@ -355,18 +330,18 @@ int deallocuvm(pde_t *pgdir, uint oldsz, uint newsz) {
       if(*pte&PTE_P) {
         pa = PTE_ADDR(*pte);
         if(pa == 0) panic("kfree");
+        char *v = P2V(pa);
+        kfree(v);
+        *pte = 0;
         uint idx = pa/PGSIZE;
         if(use_pages_lock) acquire(&pages_lock); //critical section starts.
         if(*pte&PTE_U) remove_list(idx);
         if(use_pages_lock) release(&pages_lock); //critical section ends.
-        char *v = P2V(pa);
-        kfree(v);
-        *pte = 0;
       } else {
         uint offset = PTE_ADDR(*pte) >> PTXSHIFT;
         if(offset-- != 0 && swap_bit[offset] != 0) {
           swap_bit[offset] = 0;
-          swapwrite(nothing,offset<<3);
+          swapwrite(nothing,offset);
           *pte = 0;
         }
       }
@@ -403,7 +378,7 @@ void clearpteu(pde_t *pgdir, char *uva) {
     uint pa = PTE_ADDR(*pte);
     uint idx = pa/PGSIZE;
     if(use_pages_lock) acquire(&pages_lock); //critical section starts.
-    remove_list(idx);
+    remove_list(idx); //u가 접근 못하게 lru에서 지워줘요.
     if(use_pages_lock) release(&pages_lock); //critical section ends.
   }
   *pte &= ~PTE_U;
@@ -424,13 +399,13 @@ pde_t* copyuvm(pde_t *pgdir, uint sz) {
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P)) {
       uint offset = PTE_ADDR(*pte) >> PTXSHIFT;
-      uint flags = PTE_FLAGS(*pte);
-      if(offset-- == 0 && offset < SWAPMAX/8 && swap_bit[offset] != 0) {
+      flags = PTE_FLAGS(*pte);
+      if(offset-- != 0 && swap_bit[offset] != 0) {
         int got = 0;
         for(int j=0; j<SWAPMAX/8; j++) {
           if(swap_bit[j] == 0) {
-            swap_bit[j] = 0xFF;
-            swapread(temper,offset<<3);
+            swap_bit[j] = 1;
+            swapread(temper,offset);
             swapwrite(temper,j);
             pte_t* new_pte = walkpgdir(d,(void*)i,1);
             *new_pte = (((j+1) << PTXSHIFT) | flags) & ~PTE_P;
@@ -440,7 +415,6 @@ pde_t* copyuvm(pde_t *pgdir, uint sz) {
         }
         if(!got) return 0;
       }
-      
     } else {
       pa = PTE_ADDR(*pte);
       flags = PTE_FLAGS(*pte);

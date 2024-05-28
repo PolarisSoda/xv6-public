@@ -96,9 +96,9 @@ trap(struct trapframe *tf)
     uint perm = PTE_FLAGS(*pte);
     char* mem = kalloc();
     if(mem == 0) panic("what?");
-    if(offset-- == 0 && offset <= SWAPMAX/8 && swap_bit[offset] != 0) {
-      swapwrite(mem,offset<<3);
-      swapread(nothing,offset<<3);
+    if(offset-- != 0 && offset <= SWAPMAX/8 && swap_bit[offset] != 0) {
+      swapwrite(mem,offset);
+      swapread(nothing,offset);
       swap_bit[offset] = 0;
     } else {
       memmove(mem,(char*)P2V(mem),PGSIZE);
