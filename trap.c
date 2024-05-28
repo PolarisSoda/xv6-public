@@ -99,7 +99,7 @@ trap(struct trapframe *tf)
     char* mem = kalloc();
     if(kmem.use_lock && check && !holding(&kmem.lock)) acquire(&kmem.lock);
     if(mem == 0) panic("what?");
-    if(offset-- != 0 && offset <= SWAPMAX/8 && swap_bit[offset] != 0) {
+    if(offset-- != 0 && swap_bit[offset] != 0) {
       swapwrite(mem,offset);
       swapread(nothing,offset);
       swap_bit[offset] = 0;
@@ -120,6 +120,7 @@ trap(struct trapframe *tf)
       }
       num_lru_pages++;
     }
+    break;
     /*
     *pte = V2P(new_space) | perm | PTE_P;
     swap_bit[offset] = 0;
